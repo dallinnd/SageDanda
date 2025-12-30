@@ -160,7 +160,7 @@ function renderGame() {
             // Static "Complete" badge if already done
             sageSectionHtml = `
                 <div class="mb-6 p-6 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-3xl flex items-center justify-center gap-4 animate-fadeIn">
-                    <span class="text-yellow-600 font-black tracking-tighter text-xl italic underline decoration-yellow-300">★ SAGE QUEST COMPLETE ★</span>
+                    <span class="text-yellow-600 font-black tracking-tighter text-xl italic decoration-yellow-300">★ SAGE QUEST COMPLETE ★</span>
                 </div>`;
         } else {
             // Show Progress Bar if not yet completed
