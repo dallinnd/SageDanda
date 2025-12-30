@@ -21,15 +21,6 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Navigation ---
-function showSplash() {
-    app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
-        <h1 class="text-6xl font-black text-green-400">PANDA</h1>
-        <h2 class="text-2xl font-bold text-slate-500 tracking-[0.3em] uppercase">Royale</h2>
-        <p class="mt-12 text-slate-600 animate-pulse font-bold text-xs uppercase">Tap to Enter</p>
-    </div>`;
-}
-
 function showHome() {
     const gameCards = games.map((g, i) => `
         <div class="bg-[var(--bg-card)] p-6 rounded-2xl mb-4 flex justify-between items-center border border-[var(--border-ui)] active:scale-[0.98] transition-all" onclick="openGameActions(${i})">
@@ -55,32 +46,6 @@ function showHome() {
             <div class="flex-1 overflow-y-auto">${listContent}</div>
             <button onclick="startNewGame()" class="w-full bg-green-600 py-5 rounded-3xl font-black text-xl text-white mt-6 shadow-xl">NEW GAME</button>
         </div>`;
-}
-
-// --- Popups Logic ---
-function openGameActions(index) {
-    const overlay = document.createElement('div');
-    overlay.id = 'action-modal';
-    overlay.className = 'modal-overlay animate-fadeIn';
-    overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
-    overlay.innerHTML = `<div class="action-popup">
-        <h2 class="text-2xl font-black mb-8">Game #${games.length - index}</h2>
-        <div class="flex justify-center gap-10">
-            <button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button>
-            <button onclick="confirmDelete(${index})" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white" style="background-color: var(--color-danger)"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-        </div>
-    </div>`;
-    document.body.appendChild(overlay);
-}
-
-function confirmDelete(index) {
-    if(confirm("Permanently delete this game?")) {
-        games.splice(index, 1);
-        saveGame();
-        const modal = document.getElementById('action-modal');
-        if(modal) modal.remove();
-        showHome();
-    }
 }
 
 function toggleMenu() {
@@ -145,14 +110,13 @@ function renderGame() {
             <div class="animate-fadeIn">
                 ${renderDiceRow(yellowDice, roundData)}
             </div>
-            <div class="mt-12 text-center animate-fadeIn px-4" style="animation-delay: 0.2s">
+            <div class="mt-16 text-center animate-fadeIn px-4" style="animation-delay: 0.2s">
                 <div class="expansion-gradient text-5xl font-black uppercase tracking-tight">
                     Expansion Pack<br>Edition
                 </div>
             </div>
         `;
     } else {
-        // Staggered reveal for Rounds 2+
         diceRowsHtml = diceConfig.map((dice, idx) => `
             <div class="animate-fadeIn" style="animation-delay: ${idx * 0.05}s">
                 ${renderDiceRow(dice, roundData)}
@@ -174,6 +138,11 @@ function renderGame() {
             
             <div class="p-4 pb-8">
                 ${prevRoundInfoHtml}
+                
+                <div class="section-title animate-fadeIn" style="animation-delay: 0.1s">
+                    <h3>Dice Calculators</h3>
+                </div>
+
                 <div class="space-y-3">
                     ${diceRowsHtml}
                     
