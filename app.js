@@ -80,7 +80,7 @@ function showSagePopup() {
     document.body.appendChild(overlay);
 }
 
-// --- Helpers ---
+// --- Logic Helpers ---
 function calculateSageProgress(round) {
     const usedColors = new Set();
     diceConfig.forEach(d => { if (round[d.id] && round[d.id].length > 0) usedColors.add(d.id); });
@@ -92,7 +92,6 @@ function calculateSageProgress(round) {
 
 function isSageAlreadyCompleteBy(roundIdx) {
     if (!activeGame) return false;
-    // Checks all rounds up to (and including) the specified index
     return activeGame.rounds.slice(0, roundIdx + 1).some(r => calculateSageProgress(r).count >= 6);
 }
 
@@ -100,8 +99,6 @@ function isSageAlreadyCompleteBy(roundIdx) {
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
-    
-    // logic: Show badge only if Sage was completed in this round OR any round BEFORE this one.
     const sageGlobalStatus = isSageAlreadyCompleteBy(activeGame.currentRound);
 
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
@@ -175,7 +172,7 @@ function updateAllDisplays() {
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
 }
 
-// --- Logic Fixes for Scrolling ---
+// --- Logic Fixes ---
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
@@ -197,12 +194,29 @@ function adjustWildCount(delta) {
 }
 
 function changeRound(s) { 
-    const curIdx = activeGame.currentRound;
-    const sageNow = calculateSageProgress(activeGame.rounds[curIdx]).count >= 6;
-    const completedPreviously = activeGame.rounds.slice(0, curIdx).some(r => calculateSageProgress(r).count >= 6);
+    const currentRoundIdx = activeGame.currentRound;
+    const sageNow = calculateSageProgress(activeGame.rounds[currentRoundIdx]).count >= 6;
+    const completedPreviously = activeGame.rounds.slice(0, currentRoundIdx).some(r => calculateSageProgress(r).count >= 6);
     if (s === 1 && sageNow && !completedPreviously) { showSagePopup(); }
     const n = activeGame.currentRound + s; 
     if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); } 
+}
+
+function confirmDelete(index) {
+    if(confirm("Permanently delete this game?")) {
+        games.splice(index, 1);
+        saveGame();
+        const modal = document.getElementById('action-modal');
+        if(modal) modal.remove(); // FIX: Dismisses popup on delete
+        showHome();
+    }
+}
+
+function resumeGame(i) { 
+    activeGame = games[i]; 
+    const modal = document.getElementById('action-modal');
+    if(modal) modal.remove(); // FIX: Dismisses popup on resume
+    renderGame(); 
 }
 
 // --- Support Functions ---
@@ -286,7 +300,6 @@ function calculateRoundTotal(round) {
     return total;
 }
 function calculateGrandTotal(g) { return g.rounds.reduce((t, r) => t + calculateRoundTotal(r), 0); }
-function resumeGame(i) { activeGame = games[i]; renderGame(); }
 function startNewGame() { activeGame = { id: Date.now(), date: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), currentRound: 0, rounds: Array(10).fill(null).map(() => ({ yellow: [], purple: [], blue: [], red: [], green: [], clear: [], pink: [], wild: [], blueHasSparkle: false })) }; games.unshift(activeGame); saveGame(); renderGame(); }
 
 applySettings();
