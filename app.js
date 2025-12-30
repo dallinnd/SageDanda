@@ -220,7 +220,6 @@ function renderGame() {
 function renderDiceRow(dice, roundData) {
     const isBlue = dice.id === 'blue';
     const sparkleBtn = isBlue ? `<button id="sparkle-btn" onclick="event.stopPropagation(); toggleSparkle()" class="sparkle-btn-full ${roundData.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}">${roundData.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'}</button>` : '';
-    // Increased gap and margin for larger chips
     return `<div onclick="setActiveInput('${dice.id}')" id="row-${dice.id}" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer">
         <div class="flex justify-between items-center">
             <span class="font-black uppercase tracking-tight">${dice.label}</span>
@@ -268,12 +267,7 @@ function adjustWildCount(delta) {
 
 function setWildTarget(idx, targetId) {
     activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
-    const card = document.getElementById(`wild-card-${idx}`);
-    if (card) {
-        card.style.borderLeftColor = diceConfig.find(d => d.id === targetId).color;
-        const items = card.querySelectorAll('.wheel-item');
-        diceConfig.filter(d => d.id !== 'yellow').forEach((t, i) => items[i].classList.toggle('selected', t.id === targetId));
-    }
+    setActiveWildInput(idx); // UX: Automatically select this die when color is picked
     updateAllDisplays(); saveGame();
 }
 
@@ -331,7 +325,6 @@ function updateAllDisplays() {
         else if (d.id === 'red') score = base * vals.length;
         if (document.getElementById(`${d.id}-sum`)) document.getElementById(`${d.id}-sum`).textContent = score;
         
-        // --- UPDATED CHIP TEMPLATE ---
         const valEl = document.getElementById(`${d.id}-values`);
         if (valEl) {
             valEl.innerHTML = vals.map((v, i) => `
