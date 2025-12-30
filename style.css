@@ -32,8 +32,8 @@ body {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
 /* Screen Layout Split */
-.scroll-area { height: 65vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.keypad-area { height: 35vh; background-color: var(--bg-keypad); border-top: 1px solid var(--border-ui); position: relative; z-index: 50; }
+.scroll-area { height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.keypad-area { height: 40vh; background-color: var(--bg-keypad); border-top: 1px solid var(--border-ui); position: relative; z-index: 50; }
 
 .dice-row { background-color: var(--bg-card); transition: all 0.2s ease; border-left-width: 8px; }
 
