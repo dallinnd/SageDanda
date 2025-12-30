@@ -118,7 +118,6 @@ function renderGame() {
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
     const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
 
-    // Previous Round Logic
     let prevRoundInfoHtml = '';
     if (activeGame.currentRound > 0) {
         const prevRound = activeGame.rounds[activeGame.currentRound - 1];
@@ -126,31 +125,39 @@ function renderGame() {
         const prevTotalScore = calculateRoundTotal(prevRound);
 
         prevRoundInfoHtml = `
-            <div class="prev-round-box">
-                <span>Prev Round Yellow Total</span>
-                <span class="text-xl">${prevYellowSum}</span>
-            </div>
-            <div class="prev-total-box">
-                <span>Last Round Total Score</span>
-                <span class="text-xl">${prevTotalScore}</span>
+            <div class="animate-fadeIn">
+                <div class="prev-round-box">
+                    <span>Prev Round Yellow Total</span>
+                    <span class="text-xl">${prevYellowSum}</span>
+                </div>
+                <div class="prev-total-box">
+                    <span>Last Round Total Score</span>
+                    <span class="text-xl">${prevTotalScore}</span>
+                </div>
             </div>
         `;
     }
 
-    // Determine Dice Rows for the Round
     let diceRowsHtml = '';
     if (roundNum === 1) {
-        // Only show Yellow Dice for Round 1
         const yellowDice = diceConfig.find(d => d.id === 'yellow');
         diceRowsHtml = `
-            ${renderDiceRow(yellowDice, roundData)}
-            <div class="mt-16 text-center animate-fadeIn">
-                <div class="expansion-gradient text-xl font-black uppercase tracking-[0.2em]">Expansion Pack Edition</div>
+            <div class="animate-fadeIn">
+                ${renderDiceRow(yellowDice, roundData)}
+            </div>
+            <div class="mt-12 text-center animate-fadeIn px-4" style="animation-delay: 0.2s">
+                <div class="expansion-gradient text-5xl font-black uppercase tracking-tight">
+                    Expansion Pack<br>Edition
+                </div>
             </div>
         `;
     } else {
-        // Show all dice for other rounds
-        diceRowsHtml = diceConfig.map(dice => renderDiceRow(dice, roundData)).join('');
+        // Staggered reveal for Rounds 2+
+        diceRowsHtml = diceConfig.map((dice, idx) => `
+            <div class="animate-fadeIn" style="animation-delay: ${idx * 0.05}s">
+                ${renderDiceRow(dice, roundData)}
+            </div>
+        `).join('');
     }
 
     app.innerHTML = `
@@ -170,7 +177,7 @@ function renderGame() {
                 <div class="space-y-3">
                     ${diceRowsHtml}
                     
-                    <div id="wild-section" class="wild-section-container ${roundNum < 2 ? 'hidden' : ''}">
+                    <div id="wild-section" class="wild-section-container animate-fadeIn ${roundNum < 2 ? 'hidden' : ''}" style="animation-delay: 0.4s">
                         <div class="wild-counter-inline shadow-sm">
                             <span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span>
                             <div class="flex items-center gap-5">
@@ -182,7 +189,7 @@ function renderGame() {
                         <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
                     </div>
                 </div>
-                <div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
+                <div class="grand-total-footer animate-fadeIn" style="animation-delay: 0.5s"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
             </div>
         </div>
 
