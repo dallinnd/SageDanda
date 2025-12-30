@@ -22,7 +22,7 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Home Screen ---
+// --- Home & Setup ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
         <h1 class="text-6xl font-black text-green-400">PANDA</h1>
@@ -53,7 +53,7 @@ function showHome() {
         </div>`;
 }
 
-// --- Gameplay ---
+// --- Core Render ---
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
@@ -65,16 +65,6 @@ function renderGame() {
         `<div class="sage-meter-container">
             <div class="flex justify-between items-center"><span class="text-[10px] font-black uppercase opacity-40">Sage Meter</span><span id="sage-percent-text" class="text-[10px] font-black text-teal-500 uppercase">0% Sage</span></div>
             <div class="sage-meter-bg"><div id="sage-meter-bar"></div></div>
-        </div>` : '';
-
-    let topWildCounterHtml = (roundNum >= 2) ? `
-        <div class="wild-counter-top">
-            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Quantity</span>
-            <div class="counter-controls">
-                <button onclick="adjustWildCount(-1)" class="counter-btn">-</button>
-                <span id="wild-count-num" class="text-4xl font-black">${(roundData.wild || []).length}</span>
-                <button onclick="adjustWildCount(1)" class="counter-btn">+</button>
-            </div>
         </div>` : '';
 
     app.innerHTML = `
@@ -96,11 +86,18 @@ function renderGame() {
             <div class="p-4 pb-8">
                 ${prevYellowHtml}
                 ${sageMeterHtml}
-                ${topWildCounterHtml}
                 <div class="space-y-3">
                     ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
-                    <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6 ${(roundData.wild || []).length === 0 ? 'hidden' : ''}">
-                        <div class="text-[10px] font-black uppercase opacity-40 mb-3 ml-2 text-center">Wild Assignments</div>
+                    
+                    <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6 ${roundNum === 1 ? 'hidden' : ''}">
+                        <div class="wild-header-container">
+                            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Setup</span>
+                            <div class="counter-mini-controls">
+                                <button onclick="adjustWildCount(-1)" class="counter-mini-btn">-</button>
+                                <span id="wild-count-num" class="text-2xl font-black">${(roundData.wild || []).length}</span>
+                                <button onclick="adjustWildCount(1)" class="counter-mini-btn">+</button>
+                            </div>
+                        </div>
                         <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
                     </div>
                 </div>
@@ -123,12 +120,12 @@ function renderGame() {
     updateAllDisplays();
 }
 
-// --- Navigation with Vibration ---
+// --- Navigation with Haptics ---
 function startNavJump(dir) {
     navPressTimer = setTimeout(() => {
         navPressTimer = null;
         activeGame.currentRound = (dir === -1) ? 0 : 9;
-        if ("vibrate" in navigator) navigator.vibrate([60, 40, 60]); // Distinct double pulse for jump
+        if ("vibrate" in navigator) navigator.vibrate([60, 40, 60]);
         renderGame();
     }, 500);
 }
@@ -139,13 +136,36 @@ function endNavJump(dir) {
         const next = activeGame.currentRound + dir;
         if (next >= 0 && next < 10) {
             activeGame.currentRound = next;
-            if ("vibrate" in navigator) navigator.vibrate(15); // Tiny tick for single round
+            if ("vibrate" in navigator) navigator.vibrate(15);
             renderGame();
         }
     }
 }
 
-// --- Expansion Logic ---
+// --- Wild Dice Mini-Counter & Scroll Lock ---
+function adjustWildCount(delta) {
+    const rd = activeGame.rounds[activeGame.currentRound];
+    if (!rd.wild) rd.wild = [];
+    const newCount = rd.wild.length + delta;
+    if (newCount < 0 || newCount > 9) return;
+
+    const container = document.getElementById('wild-list-container');
+    if (delta > 0) {
+        const nw = { value: 0, target: 'purple' };
+        rd.wild.push(nw);
+        const temp = document.createElement('div');
+        temp.innerHTML = renderWildCardHtml(nw, rd.wild.length - 1);
+        container.appendChild(temp.firstElementChild);
+    } else {
+        const last = document.getElementById(`wild-card-${rd.wild.length - 1}`);
+        if (last) last.remove();
+        rd.wild.pop();
+        if (activeInputField === `wild-${rd.wild.length}`) activeInputField = null;
+    }
+    document.getElementById('wild-count-num').textContent = rd.wild.length;
+    updateAllDisplays(); saveGame();
+}
+
 function updateSageMeter() {
     const round = activeGame.rounds[activeGame.currentRound];
     if (activeGame.currentRound === 0) return;
@@ -159,7 +179,6 @@ function updateSageMeter() {
     if (text) text.textContent = percent === 100 ? 'Sage Fulfilled ✨' : percent + '% Sage';
     if (percent === 100 && !round.sagePopupTriggered) {
         round.sagePopupTriggered = true;
-        if ("vibrate" in navigator) navigator.vibrate([100, 50, 100, 50, 300]); // Success pattern
         const overlay = document.createElement('div'); overlay.className = 'modal-overlay animate-fadeIn'; overlay.onclick = () => overlay.remove();
         overlay.innerHTML = `<div class="action-popup"><h2 class="text-4xl font-black text-teal-400 mb-4">✨ 100% SAGE!</h2><p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Sage Meter Reached</p></div>`;
         document.body.appendChild(overlay);
@@ -187,44 +206,11 @@ function updateAllDisplays() {
     updateSageMeter();
 }
 
-// Handlers
-function toggleSparkle() { 
-    const rd = activeGame.rounds[activeGame.currentRound]; rd.blueHasSparkle = !rd.blueHasSparkle; 
-    const btn = document.getElementById('sparkle-btn');
-    if (btn) { btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'; btn.className = `sparkle-btn-full ${rd.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}`; }
-    updateAllDisplays(); saveGame(); 
-}
-function adjustWildCount(delta) {
-    const rd = activeGame.rounds[activeGame.currentRound];
-    if (!rd.wild) rd.wild = [];
-    const newCount = rd.wild.length + delta;
-    if (newCount < 0 || newCount > 9) return;
-    const container = document.getElementById('wild-list-container');
-    if (delta > 0) {
-        const nw = { value: 0, target: 'purple' };
-        rd.wild.push(nw);
-        const temp = document.createElement('div');
-        temp.innerHTML = renderWildCardHtml(nw, rd.wild.length - 1);
-        container.appendChild(temp.firstElementChild);
-    } else {
-        const last = document.getElementById(`wild-card-${rd.wild.length - 1}`);
-        if (last) last.remove();
-        rd.wild.pop();
-    }
-    document.getElementById('wild-count-num').textContent = rd.wild.length;
-    document.getElementById('wild-section-header').classList.toggle('hidden', rd.wild.length === 0);
-    updateAllDisplays(); saveGame();
-}
-function setWildTarget(idx, targetId) {
-    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
-    const card = document.getElementById(`wild-card-${idx}`);
-    if (card) { card.style.borderLeftColor = diceConfig.find(d => d.id === targetId).color; const items = card.querySelectorAll('.wheel-item'); diceConfig.filter(d => d.id !== 'yellow').forEach((t, i) => items[i].classList.toggle('selected', t.id === targetId)); }
-    updateAllDisplays(); saveGame();
-}
+// Support Handlers
 function kpInput(v) { keypadValue += v; updateKpDisplay(); }
 function kpClear() { keypadValue = ''; updateKpDisplay(); }
 function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); updateKpDisplay(); }
-function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); }
+function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Input: ${activeInputField.toUpperCase()}` : '-'); }
 function kpEnter() {
     if (!activeInputField || !keypadValue || keypadValue === '-') return;
     const rd = activeGame.rounds[activeGame.currentRound];
@@ -250,6 +236,12 @@ function setActiveWildInput(idx) {
     const addBtn = document.getElementById('add-btn'); if (addBtn) { addBtn.style.backgroundColor = '#16a34a'; addBtn.style.color = '#fff'; }
     updateKpDisplay();
 }
+function setWildTarget(idx, targetId) {
+    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
+    const card = document.getElementById(`wild-card-${idx}`);
+    if (card) { card.style.borderLeftColor = diceConfig.find(d => d.id === targetId).color; const items = card.querySelectorAll('.wheel-item'); diceConfig.filter(d => d.id !== 'yellow').forEach((t, i) => items[i].classList.toggle('selected', t.id === targetId)); }
+    updateAllDisplays(); saveGame();
+}
 function renderWildCardHtml(w, idx) {
     const color = diceConfig.find(d => d.id === w.target).color;
     return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${activeInputField === 'wild-'+idx ? 'active-input' : ''}" style="border-left: 8px solid ${color}">
@@ -267,6 +259,7 @@ function renderDiceRow(dice, roundData) {
 }
 function changeRound(s) { const n = activeGame.currentRound + s; if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); } }
 function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); updateAllDisplays(); saveGame(); }
+function toggleSparkle() { activeGame.rounds[activeGame.currentRound].blueHasSparkle = !activeGame.rounds[activeGame.currentRound].blueHasSparkle; updateAllDisplays(); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function calculateGrandTotal(g) { return g.rounds.reduce((t, r) => t + calculateRoundTotal(r), 0); }
