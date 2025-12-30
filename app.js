@@ -51,7 +51,6 @@ function showHome() {
         </div>`;
 }
 
-// --- Popups Logic ---
 function openGameActions(index) {
     const overlay = document.createElement('div');
     overlay.id = 'action-modal';
@@ -98,6 +97,7 @@ function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
 
+    // Modern Chevrons
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
     const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
 
@@ -125,12 +125,12 @@ function renderGame() {
                     ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
                     
                     <div id="wild-section" class="wild-section-container ${roundNum < 2 ? 'hidden' : ''}">
-                        <div class="wild-counter-inline">
-                            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Qty</span>
-                            <div class="flex items-center gap-4">
-                                <button onclick="adjustWildCount(-1)" class="w-8 h-8 flex items-center justify-center bg-black/5 rounded-lg font-bold">-</button>
-                                <span id="wild-count-num" class="font-black text-xl">${(roundData.wild || []).length}</span>
-                                <button onclick="adjustWildCount(1)" class="w-8 h-8 flex items-center justify-center bg-black/5 rounded-lg font-bold">+</button>
+                        <div class="wild-counter-inline shadow-sm">
+                            <span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span>
+                            <div class="flex items-center gap-5">
+                                <button onclick="adjustWildCount(-1)" class="wild-btn-minus">-</button>
+                                <span id="wild-count-num" class="font-black text-2xl">${(roundData.wild || []).length}</span>
+                                <button onclick="adjustWildCount(1)" class="wild-btn-plus">+</button>
                             </div>
                         </div>
                         <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
@@ -174,7 +174,6 @@ function renderWildCardHtml(w, idx) {
     </div>`;
 }
 
-// --- Logic ---
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
