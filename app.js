@@ -61,7 +61,7 @@ function openGameActions(index) {
         <h2 class="text-2xl font-black mb-8">Game #${games.length - index}</h2>
         <div class="flex justify-center gap-10">
             <button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button>
-            <button onclick="confirmDelete(${index})" class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+            <button onclick="confirmDelete(${index})" class="w-16 h-16 rounded-2xl flex items-center justify-center text-white" style="background-color: var(--color-danger)"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
         </div>
     </div>`;
     document.body.appendChild(overlay);
@@ -93,19 +93,13 @@ function toggleMenu() {
     document.body.appendChild(menu);
 }
 
-function clearHistory() {
-    if(confirm("Delete ALL games in history? This cannot be undone.")) {
-        games = [];
-        saveGame();
-        toggleMenu();
-        showHome();
-    }
-}
-
 // --- Gameplay Render ---
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
+
+    const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
+    const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
 
     let prevYellowHtml = '';
     if (activeGame.currentRound > 0) {
@@ -113,37 +107,32 @@ function renderGame() {
         prevYellowHtml = `<div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${prevSum}</span></div>`;
     }
 
-    let topWildCounterHtml = '';
-    if (roundNum >= 2) {
-        topWildCounterHtml = `<div class="wild-counter-top animate-fadeIn">
-            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Quantity</span>
-            <div class="counter-controls">
-                <button onclick="adjustWildCount(-1)" class="counter-btn">-</button>
-                <span id="wild-count-num" class="text-4xl font-black">${(roundData.wild || []).length}</span>
-                <button onclick="adjustWildCount(1)" class="counter-btn">+</button>
-            </div>
-        </div>`;
-    }
-
     app.innerHTML = `
         <div class="scroll-area" id="game-scroll">
             <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
                 <button onclick="showHome()" class="text-[10px] font-black uppercase opacity-50 px-3 py-2 rounded-lg bg-black/5">Exit</button>
                 <div class="flex items-center gap-6">
-                    <button onclick="changeRound(-1)" class="text-4xl font-bold ${roundNum === 1 ? 'opacity-0 pointer-events-none' : 'text-blue-500'}">←</button>
+                    <button onclick="changeRound(-1)" class="nav-btn ${roundNum === 1 ? 'disabled' : ''}">${leftChevron}</button>
                     <div class="text-center"><div class="text-xl font-black uppercase">Round ${roundNum}</div><div id="round-total-display" class="text-5xl font-black">0</div></div>
-                    <button onclick="changeRound(1)" class="text-4xl font-bold ${roundNum === 10 ? 'opacity-0 pointer-events-none' : 'text-blue-500'}">→</button>
+                    <button onclick="changeRound(1)" class="nav-btn ${roundNum === 10 ? 'disabled' : ''}">${rightChevron}</button>
                 </div>
                 <div class="w-10"></div>
             </div>
             
             <div class="p-4 pb-8">
                 ${prevYellowHtml}
-                ${topWildCounterHtml}
                 <div class="space-y-3">
                     ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
-                    <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6 ${(roundData.wild || []).length === 0 ? 'hidden' : ''}">
-                        <div class="text-[10px] font-black uppercase opacity-40 mb-3 ml-2 text-center">Wild Assignments</div>
+                    
+                    <div id="wild-section" class="wild-section-container ${roundNum < 2 ? 'hidden' : ''}">
+                        <div class="wild-counter-inline">
+                            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Qty</span>
+                            <div class="flex items-center gap-4">
+                                <button onclick="adjustWildCount(-1)" class="w-8 h-8 flex items-center justify-center bg-black/5 rounded-lg font-bold">-</button>
+                                <span id="wild-count-num" class="font-black text-xl">${(roundData.wild || []).length}</span>
+                                <button onclick="adjustWildCount(1)" class="w-8 h-8 flex items-center justify-center bg-black/5 rounded-lg font-bold">+</button>
+                            </div>
+                        </div>
                         <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
                     </div>
                 </div>
@@ -191,23 +180,20 @@ function adjustWildCount(delta) {
     if (!rd.wild) rd.wild = [];
     const newCount = rd.wild.length + delta;
     if (newCount < 0 || newCount > 9) return;
+    const container = document.getElementById('wild-list-container');
     if (delta > 0) {
         const newIdx = rd.wild.length;
         const newWild = { value: 0, target: 'purple' };
         rd.wild.push(newWild);
-        const container = document.getElementById('wild-list-container');
         const temp = document.createElement('div');
         temp.innerHTML = renderWildCardHtml(newWild, newIdx);
         container.appendChild(temp.firstElementChild);
     } else {
-        const lastIdx = rd.wild.length - 1;
         rd.wild.pop();
-        const el = document.getElementById(`wild-card-${lastIdx}`);
-        if (el) el.remove();
-        if (activeInputField === `wild-${lastIdx}`) activeInputField = null;
+        if (container.lastElementChild) container.lastElementChild.remove();
+        if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null;
     }
     document.getElementById('wild-count-num').textContent = rd.wild.length;
-    document.getElementById('wild-section-header').classList.toggle('hidden', rd.wild.length === 0);
     updateAllDisplays(); saveGame();
 }
 
