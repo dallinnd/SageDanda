@@ -94,10 +94,11 @@ body.light-theme .prev-total-box {
 
 /* Expansion Pack Gradient Text */
 .expansion-gradient {
-    background: linear-gradient(to right, #a855f7, #ef4444, #a855f7);
+    background: linear-gradient(to bottom right, #a855f7, #ef4444, #a855f7);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     display: inline-block;
+    line-height: 1.1; /* Keeps the two lines close together */
 }
 
 /* Wild Cards Stack */
