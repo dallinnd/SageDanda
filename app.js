@@ -48,6 +48,7 @@ function showHome() {
         </div>`;
 }
 
+// Fixed Action Popup & Brighter Icons
 function openGameActions(index) {
     const overlay = document.createElement('div');
     overlay.id = 'action-modal';
@@ -56,11 +57,21 @@ function openGameActions(index) {
     overlay.innerHTML = `<div class="action-popup">
         <h2 class="text-2xl font-black mb-8">Game #${games.length - index}</h2>
         <div class="flex justify-center gap-10">
-            <button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button>
-            <button onclick="confirmDelete(${index})" class="w-16 h-16 bg-red-900 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+            <button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button>
+            <button onclick="confirmDelete(${index})" class="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-lg active:scale-90 transition-all"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
         </div>
     </div>`;
     document.body.appendChild(overlay);
+}
+
+function confirmDelete(index) {
+    if (confirm("Permanently delete this game?")) {
+        games.splice(index, 1);
+        saveGame();
+        const modal = document.getElementById('action-modal');
+        if (modal) modal.remove();
+        showHome();
+    }
 }
 
 function toggleMenu() {
@@ -74,14 +85,14 @@ function toggleMenu() {
         <h2 class="text-xl font-black uppercase mb-10">Settings</h2>
         <button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 mb-3 ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">Dark Navy</button>
         <button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">Off-White</button>
-        <button onclick="clearHistory()" class="mt-auto text-red-900 font-bold p-4 opacity-70 italic">Clear All History</button>
+        <button onclick="clearHistory()" class="mt-auto text-red-500 font-bold p-4 opacity-70 italic">Clear All History</button>
     </div>`;
     document.body.appendChild(menu);
 }
 
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
-    const roundData = activeGame.rounds[activeGame.currentRound];
+    const rd = activeGame.rounds[activeGame.currentRound];
 
     let prevYellowHtml = '';
     if (activeGame.currentRound > 0) {
@@ -89,9 +100,16 @@ function renderGame() {
         prevYellowHtml = `<div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-4xl">${prevSum}</span></div>`;
     }
 
-    let sageMeterHtml = roundNum >= 2 ? `<div class="sage-meter-container animate-fadeIn"><div class="sage-status-text"><span class="opacity-50">Sage Meter</span><span id="sage-count-text" style="color: #b2ac88">0/6 Colors</span></div><div class="sage-bar-bg"><div id="sage-bar-progress" class="sage-bar-fill"></div></div></div>` : '';
+    let sageMeterHtml = '';
+    if (roundNum >= 2) {
+        if (rd.sageQuestComplete) {
+            sageMeterHtml = `<div class="sage-meter-container bg-green-500/10 border-green-500/30 text-center py-4"><span class="text-green-500 font-black uppercase tracking-widest text-sm">✨ Sage Quest Complete ✨</span></div>`;
+        } else {
+            sageMeterHtml = `<div class="sage-meter-container animate-fadeIn"><div class="sage-status-text"><span class="opacity-50">Sage Meter</span><span id="sage-count-text" style="color: #b2ac88">0/6 Colors</span></div><div class="sage-bar-bg"><div id="sage-bar-progress" class="sage-bar-fill"></div></div></div>`;
+        }
+    }
 
-    const wildCounterHtml = `<div class="wild-counter-top animate-fadeIn"><span class="text-[10px] font-black uppercase opacity-40">Wild Dice Quantity</span><div class="counter-controls"><button onclick="adjustWildCount(-1)" class="counter-btn btn-minus">-</button><span id="wild-count-num" class="text-4xl font-black">${(roundData.wild || []).length}</span><button onclick="adjustWildCount(1)" class="counter-btn btn-plus">+</button></div></div>`;
+    const wildCounterHtml = `<div class="wild-counter-top animate-fadeIn"><span class="text-[10px] font-black uppercase opacity-40">Wild Dice Quantity</span><div class="counter-controls"><button onclick="adjustWildCount(-1)" class="counter-btn btn-minus">-</button><span id="wild-count-num" class="text-4xl font-black">${(rd.wild || []).length}</span><button onclick="adjustWildCount(1)" class="counter-btn btn-plus">+</button></div></div>`;
 
     app.innerHTML = `<div class="scroll-area" id="game-scroll">
             <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
@@ -107,11 +125,11 @@ function renderGame() {
                 ${prevYellowHtml}
                 ${sageMeterHtml}
                 <div class="space-y-3">
-                    ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
+                    ${diceConfig.map(dice => renderDiceRow(dice, rd)).join('')}
                     <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6">
                         ${roundNum >= 2 ? wildCounterHtml : ''}
-                        <div id="wild-assignments-label" class="text-[10px] font-black uppercase opacity-40 mb-3 ml-2 text-center ${(roundData.wild || []).length === 0 ? 'hidden' : ''}">Wild Assignments</div>
-                        <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
+                        <div id="wild-assignments-label" class="text-[10px] font-black uppercase opacity-40 mb-3 ml-2 text-center ${(rd.wild || []).length === 0 ? 'hidden' : ''}">Wild Assignments</div>
+                        <div class="wild-stack" id="wild-list-container">${(rd.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
                     </div>
                 </div>
                 <div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
@@ -155,17 +173,42 @@ function updateAllDisplays() {
         else if (d.id === 'red') score = base * vals.length;
         if (document.getElementById(`${d.id}-sum`)) document.getElementById(`${d.id}-sum`).textContent = score;
         const valEl = document.getElementById(`${d.id}-values`);
-        if (valEl) valEl.innerHTML = vals.map((v, i) => `<span class="bg-black/10 px-3 py-1 rounded-lg text-sm font-black">${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" class="ml-2 opacity-30">×</button></span>`).join('');
+        if (valEl) valEl.innerHTML = vals.map((v, idx) => `<span class="bg-black/10 px-3 py-1 rounded-lg text-sm font-black">${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${idx})" class="ml-2 opacity-30">×</button></span>`).join('');
     });
 
+    // Sage Meter Check
     const count = filledColors.size;
-    const sageProgress = Math.min((count / 6) * 100, 100);
+    if (count >= 6 && !round.sageQuestComplete && (activeGame.currentRound + 1) >= 2) {
+        round.sageQuestComplete = true;
+        showSagePopup();
+        renderGame();
+    }
+
     const bar = document.getElementById('sage-bar-progress');
     const text = document.getElementById('sage-count-text');
-    if (bar && text) { bar.style.width = `${sageProgress}%`; text.textContent = `${count}/6 Colors`; bar.style.backgroundColor = count >= 6 ? '#4ade80' : '#b2ac88'; }
+    if (bar && text) {
+        const sageProgress = Math.min((count / 6) * 100, 100);
+        bar.style.width = `${sageProgress}%`;
+        text.textContent = `${count}/6 Colors`;
+    }
 
     document.getElementById('round-total-display').textContent = calculateRoundTotal(round);
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
+}
+
+function showSagePopup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay animate-fadeIn cursor-pointer';
+    overlay.onclick = () => overlay.remove();
+    overlay.innerHTML = `
+        <div class="bg-white rounded-[40px] p-10 flex flex-col items-center shadow-2xl scale-110">
+            <h2 class="text-[#b2ac88] text-3xl font-black uppercase tracking-tighter mb-2">Sage Quest</h2>
+            <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg mt-6">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <p class="mt-8 text-slate-400 text-[10px] font-black uppercase opacity-50">Tap to Dismiss</p>
+        </div>`;
+    document.body.appendChild(overlay);
 }
 
 function renderDiceRow(dice, roundData) {
@@ -192,11 +235,10 @@ function adjustWildCount(delta) {
     const newCount = rd.wild.length + delta;
     if (newCount < 0 || newCount > 9) return;
     if (delta > 0) {
-        const newWild = { value: 0, target: 'purple' };
-        rd.wild.push(newWild);
+        rd.wild.push({ value: 0, target: 'purple' });
         const container = document.getElementById('wild-list-container');
         const temp = document.createElement('div');
-        temp.innerHTML = renderWildCardHtml(newWild, rd.wild.length - 1);
+        temp.innerHTML = renderWildCardHtml(rd.wild[rd.wild.length - 1], rd.wild.length - 1);
         container.appendChild(temp.firstElementChild);
     } else {
         const lastIdx = rd.wild.length - 1;
@@ -228,7 +270,7 @@ function clearHistory() { if(confirm("Delete ALL games?")) { games = []; saveGam
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function calculateGrandTotal(g) { return g.rounds.reduce((t, r) => t + calculateRoundTotal(r), 0); }
 function resumeGame(i) { activeGame = games[i]; if(document.getElementById('action-modal')) document.getElementById('action-modal').remove(); renderGame(); }
-function startNewGame() { activeGame = { id: Date.now(), date: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), currentRound: 0, rounds: Array(10).fill(null).map(() => ({ yellow: [], purple: [], blue: [], red: [], green: [], clear: [], pink: [], wild: [], blueHasSparkle: false })) }; games.unshift(activeGame); saveGame(); renderGame(); }
+function startNewGame() { activeGame = { id: Date.now(), date: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), currentRound: 0, rounds: Array(10).fill(null).map(() => ({ yellow: [], purple: [], blue: [], red: [], green: [], clear: [], pink: [], wild: [], blueHasSparkle: false, sageQuestComplete: false })) }; games.unshift(activeGame); saveGame(); renderGame(); }
 
 applySettings();
 showSplash();
