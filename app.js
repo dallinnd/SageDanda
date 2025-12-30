@@ -118,7 +118,6 @@ function renderGame() {
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
     const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
 
-    // --- Header & Previous Totals Section ---
     let prevRoundInfoHtml = '';
     if (activeGame.currentRound > 0) {
         const prevRound = activeGame.rounds[activeGame.currentRound - 1];
@@ -139,7 +138,6 @@ function renderGame() {
         `;
     }
 
-    // --- Dice Rows with Staggered Logic ---
     let diceRowsHtml = '';
     if (roundNum === 1) {
         const yellowDice = diceConfig.find(d => d.id === 'yellow');
@@ -222,16 +220,15 @@ function renderGame() {
 function renderDiceRow(dice, roundData) {
     const isBlue = dice.id === 'blue';
     const sparkleBtn = isBlue ? `<button id="sparkle-btn" onclick="event.stopPropagation(); toggleSparkle()" class="sparkle-btn-full ${roundData.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}">${roundData.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'}</button>` : '';
+    // Increased gap and margin for larger chips
     return `<div onclick="setActiveInput('${dice.id}')" id="row-${dice.id}" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer">
         <div class="flex justify-between items-center">
             <span class="font-black uppercase tracking-tight">${dice.label}</span>
             <span id="${dice.id}-sum" class="text-3xl font-black">0</span>
         </div>
-        <div id="${dice.id}-values" class="flex flex-wrap gap-2 mt-2 min-h-[10px]"></div>
+        <div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>
         ${sparkleBtn}
     </div>`;
-    // In renderDiceRow function:
-    <div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>
 }
 
 function renderWildCardHtml(w, idx) {
@@ -317,17 +314,13 @@ function setActiveInput(id) {
 }
 
 function updateAllDisplays() {
-    // Inside updateAllDisplays function:
-    const valEl = document.getElementById(`${d.id}-values`);
-        if (valEl) {
-            valEl.innerHTML = vals.map((v, i) => `
-            <span class="inline-flex items-center bg-black/10 px-5 py-3 rounded-2xl text-xl font-black shadow-sm border border-black/5 active:scale-95 transition-transform">
-                ${v} 
-            <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" 
-                    class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg leading-none opacity-60 active:bg-red-500 active:text-white transition-colors">
-                ×
-            </button>
-        </span>`).join('');
+    const round = activeGame.rounds[activeGame.currentRound];
+    if (!round) return;
+    const wildBonuses = {};
+    (round.wild || []).forEach((w, i) => {
+        wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0);
+        const displays = document.querySelectorAll('.wild-val-display');
+        if (displays[i]) displays[i].textContent = w.value || 0;
     });
     diceConfig.forEach(d => {
         const vals = round[d.id] || [];
@@ -337,8 +330,19 @@ function updateAllDisplays() {
         else if (d.id === 'blue' && round.blueHasSparkle) score = base * 2;
         else if (d.id === 'red') score = base * vals.length;
         if (document.getElementById(`${d.id}-sum`)) document.getElementById(`${d.id}-sum`).textContent = score;
+        
+        // --- UPDATED CHIP TEMPLATE ---
         const valEl = document.getElementById(`${d.id}-values`);
-        if (valEl) valEl.innerHTML = vals.map((v, i) => `<span class="bg-black/10 px-3 py-1 rounded-lg text-sm font-black">${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" class="ml-2 opacity-30">×</button></span>`).join('');
+        if (valEl) {
+            valEl.innerHTML = vals.map((v, i) => `
+                <span class="inline-flex items-center bg-black/10 px-5 py-3 rounded-2xl text-xl font-black shadow-sm border border-black/5 active:scale-95 transition-transform">
+                    ${v} 
+                    <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" 
+                            class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg leading-none opacity-60 active:bg-red-500 active:text-white transition-colors">
+                        ×
+                    </button>
+                </span>`).join('');
+        }
     });
     document.getElementById('round-total-display').textContent = calculateRoundTotal(round);
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
