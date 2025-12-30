@@ -230,6 +230,8 @@ function renderDiceRow(dice, roundData) {
         <div id="${dice.id}-values" class="flex flex-wrap gap-2 mt-2 min-h-[10px]"></div>
         ${sparkleBtn}
     </div>`;
+    // In renderDiceRow function:
+    <div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>
 }
 
 function renderWildCardHtml(w, idx) {
@@ -315,13 +317,18 @@ function setActiveInput(id) {
 }
 
 function updateAllDisplays() {
-    const round = activeGame.rounds[activeGame.currentRound];
-    if (!round) return;
-    const wildBonuses = {};
-    (round.wild || []).forEach((w, i) => {
-        wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0);
-        const displays = document.querySelectorAll('.wild-val-display');
-        if (displays[i]) displays[i].textContent = w.value || 0;
+    // Inside updateAllDisplays function:
+    const valEl = document.getElementById(`${d.id}-values`);
+        if (valEl) {
+            valEl.innerHTML = vals.map((v, i) => `
+            <span class="inline-flex items-center bg-black/10 px-5 py-3 rounded-2xl text-xl font-black shadow-sm border border-black/5 active:scale-95 transition-transform">
+                ${v} 
+            <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" 
+                    class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg leading-none opacity-60 active:bg-red-500 active:text-white transition-colors">
+                ×
+            </button>
+        </span>`).join('');
+        }
     });
     diceConfig.forEach(d => {
         const vals = round[d.id] || [];
