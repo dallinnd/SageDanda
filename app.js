@@ -112,7 +112,7 @@ function clearHistory() {
     }
 }
 
-// --- Gameplay Render ---
+// Render Game Function
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
@@ -120,10 +120,27 @@ function renderGame() {
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
     const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
 
-    let prevYellowHtml = '';
+    // --- Logic for Previous Round Info ---
+    let prevRoundInfoHtml = '';
     if (activeGame.currentRound > 0) {
-        const prevSum = (activeGame.rounds[activeGame.currentRound - 1].yellow || []).reduce((a, b) => a + b, 0);
-        prevYellowHtml = `<div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${prevSum}</span></div>`;
+        const prevRound = activeGame.rounds[activeGame.currentRound - 1];
+        
+        // Calculate Yellow Total
+        const prevYellowSum = (prevRound.yellow || []).reduce((a, b) => a + b, 0);
+        
+        // Calculate Round Score Total
+        const prevTotalScore = calculateRoundTotal(prevRound);
+
+        prevRoundInfoHtml = `
+            <div class="prev-round-box">
+                <span>Prev Round Yellow Total</span>
+                <span class="text-xl">${prevYellowSum}</span>
+            </div>
+            <div class="prev-total-box">
+                <span>Last Round Total Score</span>
+                <span class="text-xl">${prevTotalScore}</span>
+            </div>
+        `;
     }
 
     app.innerHTML = `
@@ -139,7 +156,8 @@ function renderGame() {
             </div>
             
             <div class="p-4 pb-8">
-                ${prevYellowHtml}
+                ${prevRoundInfoHtml}
+                
                 <div class="space-y-3">
                     ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
                     
@@ -158,19 +176,7 @@ function renderGame() {
                 <div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
             </div>
         </div>
-
-        <div id="keypad-container" class="keypad-area p-4 flex flex-col">
-            <div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div>
-            <div class="grid grid-cols-4 gap-2 flex-1">
-                ${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
-                <button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>
-                ${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
-                ${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
-                <button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button>
-                <button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button>
-                <button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button>
-            </div>
-        </div>`;
+        `;
     updateAllDisplays();
 }
 
