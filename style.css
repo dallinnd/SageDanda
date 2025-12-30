@@ -79,6 +79,19 @@ body {
     display: flex; justify-content: space-between; align-items: center;
 }
 
+/* New Box for Last Round Total */
+.prev-total-box {
+    background-color: #1e293b; color: #f1f5f9; border-radius: 16px;
+    padding: 12px 16px; font-weight: 900; font-size: 0.75rem; margin-bottom: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid var(--border-ui);
+}
+
+body.light-theme .prev-total-box {
+    background-color: #e2e8f0; color: #0f172a;
+    border-color: #cbd5e1;
+}
+
 /* Wild Cards Stack */
 .wild-stack { display: flex; flex-direction: column; gap: 12px; }
 .wild-card {
