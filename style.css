@@ -6,12 +6,11 @@
     --text-secondary: #94a3b8;
     --border-ui: #1e293b;
     --color-score: #16a34a; 
-    --color-danger: #991b1b; 
 }
 
 body.light-theme {
     --bg-main: #ffffff;
-    --bg-card: #f1f5f9; 
+    --bg-card: #f1f5f9; /* Lighter grey for light mode containers */
     --bg-keypad: #f8fafc;
     --text-primary: #0f172a;
     --text-secondary: #64748b;
@@ -35,28 +34,28 @@ body {
 
 .dice-row { background-color: var(--bg-card); transition: all 0.2s ease; border-left-width: 8px; }
 
-/* Taller Prev Round Box */
+/* Prominent Yellow Box */
 .prev-round-box {
-    background-color: #fbbf24; color: #000; border-radius: 20px;
-    padding: 24px 20px; font-weight: 900; font-size: 0.85rem; margin-bottom: 12px;
+    background-color: #fbbf24; color: #000; border-radius: 24px;
+    padding: 32px 24px; font-weight: 900; font-size: 0.9rem; margin-bottom: 16px;
     display: flex; justify-content: space-between; align-items: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 /* Sage Meter */
-.sage-meter-container { background-color: var(--bg-card); border-radius: 16px; padding: 14px; margin-bottom: 20px; border: 1px solid var(--border-ui); }
+.sage-meter-container { background-color: var(--bg-card); border-radius: 16px; padding: 14px; margin-bottom: 20px; border: 1px solid var(--border-ui); transition: all 0.4s ease; }
 .sage-bar-bg { background: rgba(0, 0, 0, 0.1); height: 10px; border-radius: 5px; overflow: hidden; margin-top: 8px; }
 .sage-bar-fill { background-color: #b2ac88; height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .sage-status-text { font-size: 10px; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; }
 
-/* Counter Buttons */
+/* Wild Counter - Always White */
 .wild-counter-top {
     background-color: white !important; color: #000 !important; border-radius: 20px;
     padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 12px; border: 1px solid #e2e8f0;
 }
-.btn-minus { background-color: #dc2626; color: white; }
-.btn-plus { background-color: #000000; color: white; }
+.btn-minus { background-color: #ef4444; color: white; } /* Red */
+.btn-plus { background-color: #000000; color: white; } /* Black */
 .counter-controls { display: flex; align-items: center; gap: 32px; }
 .counter-btn { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 900; }
 
