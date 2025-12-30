@@ -73,29 +73,25 @@ function openGameActions(index) {
     document.body.appendChild(overlay);
 }
 
-// --- SAGE CELEBRATION POPUP ---
 function showSagePopup() {
     const overlay = document.createElement('div');
-    // Intensive backdrop blur for achievement feel
     overlay.className = 'fixed inset-0 bg-black/40 backdrop-blur-2xl z-[2000] flex items-center justify-center animate-fadeIn cursor-pointer';
     overlay.onclick = () => overlay.remove();
-
     overlay.innerHTML = `
-        <div class="w-[85%] max-w-[320px] bg-white border-4 border-yellow-500 rounded-[40px] p-8 text-center shadow-[0_0_50px_rgba(234,179,8,0.3)]">
+        <div class="w-[85%] max-w-[320px] bg-white border-4 border-yellow-500 rounded-[40px] p-8 text-center shadow-2xl">
             <div class="flex flex-col items-center gap-6">
-                <div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-white shadow-xl ring-4 ring-yellow-200">
+                <div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-white ring-4 ring-yellow-200">
                     <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path>
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-3xl font-black text-yellow-600 tracking-tighter mb-1">✨ SAGE QUEST ✨</h2>
+                    <h2 class="text-3xl font-black text-yellow-600 tracking-tighter mb-1">SAGE QUEST</h2>
                     <h3 class="text-xl font-black uppercase text-slate-400">COMPLETE</h3>
                 </div>
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Tap anywhere to continue</p>
             </div>
-        </div>
-    `;
+        </div>`;
     document.body.appendChild(overlay);
 }
 
@@ -136,10 +132,30 @@ function clearHistory() {
     }
 }
 
+// --- Logic Helpers ---
+function calculateSageProgress(round) {
+    const usedColors = new Set();
+    diceConfig.forEach(d => {
+        if (round[d.id] && round[d.id].length > 0) usedColors.add(d.id);
+    });
+    if (round.wild) {
+        round.wild.forEach(w => { if (w.value !== 0) usedColors.add(w.target); });
+    }
+    const count = usedColors.size;
+    const percentage = Math.min(100, (count / 6) * 100);
+    return { count, percentage };
+}
+
+function isSageAlreadyComplete() {
+    if (!activeGame) return false;
+    return activeGame.rounds.some(r => calculateSageProgress(r).count >= 6);
+}
+
 // --- Gameplay Render Engine ---
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
+    const sageGlobalStatus = isSageAlreadyComplete();
 
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
     const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
@@ -149,53 +165,41 @@ function renderGame() {
         const prevRound = activeGame.rounds[activeGame.currentRound - 1];
         const prevYellowSum = (prevRound.yellow || []).reduce((a, b) => a + b, 0);
         const prevTotalScore = calculateRoundTotal(prevRound);
-
-        prevRoundInfoHtml = `
-            <div class="animate-fadeIn">
-                <div class="prev-round-box">
-                    <span>Prev Round Yellow Total</span>
-                    <span class="text-xl">${prevYellowSum}</span>
-                </div>
-                <div class="prev-total-box">
-                    <span>Last Round Total Score</span>
-                    <span class="text-xl">${prevTotalScore}</span>
-                </div>
-            </div>
-        `;
+        prevRoundInfoHtml = `<div class="animate-fadeIn">
+            <div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${prevYellowSum}</span></div>
+            <div class="prev-total-box"><span>Last Round Total Score</span><span class="text-xl">${prevTotalScore}</span></div>
+        </div>`;
     }
 
     let diceRowsHtml = '';
     if (roundNum === 1) {
         const yellowDice = diceConfig.find(d => d.id === 'yellow');
-        diceRowsHtml = `
-            <div class="animate-fadeIn">
-                ${renderDiceRow(yellowDice, roundData)}
-            </div>
+        diceRowsHtml = `<div class="animate-fadeIn">${renderDiceRow(yellowDice, roundData)}</div>
             <div class="mt-12 text-center animate-fadeIn px-4" style="animation-delay: 0.2s">
-                <div class="expansion-gradient text-5xl font-black uppercase tracking-tight">
-                    Expansion Pack<br>Edition
-                </div>
-            </div>
-        `;
+                <div class="expansion-gradient text-5xl font-black uppercase tracking-tight">Expansion Pack<br>Edition</div>
+            </div>`;
     } else {
-        diceRowsHtml = diceConfig.map((dice, idx) => `
-            <div class="animate-fadeIn" style="animation-delay: ${idx * 0.05}s">
-                ${renderDiceRow(dice, roundData)}
-            </div>
-        `).join('');
+        diceRowsHtml = diceConfig.map((dice, idx) => `<div class="animate-fadeIn" style="animation-delay: ${idx * 0.05}s">${renderDiceRow(dice, roundData)}</div>`).join('');
     }
 
-    const sageBarHtml = roundNum >= 2 ? `
-        <div id="sage-container" class="mb-6 p-4 bg-black/5 rounded-3xl border border-[var(--border-ui)] animate-fadeIn">
-            <div class="flex justify-between items-end mb-2">
-                <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Sage Progress</span>
-                <span id="sage-status-text" class="text-xs font-black uppercase text-green-500">0/6 Used</span>
-            </div>
-            <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden">
-                <div id="sage-progress-fill" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
-            </div>
-        </div>
-    ` : '';
+    let sageSectionHtml = '';
+    if (roundNum >= 2) {
+        if (sageGlobalStatus) {
+            sageSectionHtml = `<div class="mb-6 p-6 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-3xl flex items-center justify-center animate-fadeIn">
+                <span class="text-yellow-600 font-black tracking-tighter text-xl italic underline decoration-yellow-300">★ SAGE QUEST COMPLETE ★</span>
+            </div>`;
+        } else {
+            sageSectionHtml = `<div id="sage-container" class="mb-6 p-4 bg-black/5 rounded-3xl border border-[var(--border-ui)] animate-fadeIn">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Sage Progress</span>
+                    <span id="sage-status-text" class="text-xs font-black uppercase text-green-500">0/6 Used</span>
+                </div>
+                <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden">
+                    <div id="sage-progress-fill" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>`;
+        }
+    }
 
     app.innerHTML = `
         <div class="scroll-area" id="game-scroll">
@@ -208,39 +212,16 @@ function renderGame() {
                 </div>
                 <div class="w-10"></div>
             </div>
-            
-            <div class="p-4 pb-8">
-                ${prevRoundInfoHtml}
-                
-                ${sageBarHtml}
-
-                <div class="section-title animate-fadeIn" style="animation-delay: 0.1s">
-                    <h3>Dice Calculators</h3>
-                </div>
-
-                <div class="space-y-3">
-                    ${diceRowsHtml}
-                    
+            <div class="p-4 pb-8">${prevRoundInfoHtml}${sageSectionHtml}<div class="section-title animate-fadeIn" style="animation-delay: 0.1s"><h3>Dice Calculators</h3></div>
+                <div class="space-y-3">${diceRowsHtml}
                     <div id="wild-section" class="wild-section-container animate-fadeIn ${roundNum < 2 ? 'hidden' : ''}" style="animation-delay: 0.4s">
-                        <div class="wild-counter-inline shadow-sm">
-                            <span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span>
-                            <div class="flex items-center gap-5">
-                                <button onclick="adjustWildCount(-1)" class="wild-btn-minus">-</button>
-                                <span id="wild-count-num" class="font-black text-2xl">${(roundData.wild || []).length}</span>
-                                <button onclick="adjustWildCount(1)" class="wild-btn-plus">+</button>
-                            </div>
-                        </div>
+                        <div class="wild-counter-inline shadow-sm"><span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span><div class="flex items-center gap-5"><button onclick="adjustWildCount(-1)" class="wild-btn-minus">-</button><span id="wild-count-num" class="font-black text-2xl">${(roundData.wild || []).length}</span><button onclick="adjustWildCount(1)" class="wild-btn-plus">+</button></div></div>
                         <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
                     </div>
                 </div>
-                
-                <div class="grand-total-footer animate-fadeIn" style="animation-delay: 0.5s">
-                    <span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span>
-                    <span id="grand-total-box" class="text-5xl font-black">0</span>
-                </div>
+                <div class="grand-total-footer animate-fadeIn" style="animation-delay: 0.5s"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
             </div>
         </div>
-
         <div id="keypad-container" class="keypad-area p-4 flex flex-col">
             <div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div>
             <div class="grid grid-cols-4 gap-2 flex-1">
@@ -261,86 +242,35 @@ function renderDiceRow(dice, roundData) {
     const isBlue = dice.id === 'blue';
     const sparkleBtn = isBlue ? `<button id="sparkle-btn" onclick="event.stopPropagation(); toggleSparkle()" class="sparkle-btn-full ${roundData.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}">${roundData.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'}</button>` : '';
     return `<div onclick="setActiveInput('${dice.id}')" id="row-${dice.id}" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer">
-        <div class="flex justify-between items-center">
-            <span class="font-black uppercase tracking-tight">${dice.label}</span>
-            <span id="${dice.id}-sum" class="text-3xl font-black">0</span>
-        </div>
-        <div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>
-        ${sparkleBtn}
-    </div>`;
+        <div class="flex justify-between items-center"><span class="font-black uppercase tracking-tight">${dice.label}</span><span id="${dice.id}-sum" class="text-3xl font-black">0</span></div>
+        <div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>${sparkleBtn}</div>`;
 }
 
 function renderWildCardHtml(w, idx) {
     const color = diceConfig.find(d => d.id === w.target).color;
     return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${activeInputField === 'wild-'+idx ? 'active-input' : ''}" style="border-left: 8px solid ${color}">
-        <div class="flex justify-between items-start">
-            <span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span>
-            <span class="text-3xl font-black wild-val-display">${w.value || 0}</span>
-        </div>
-        <div class="color-picker-wheel">
-            ${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}
-        </div>
-    </div>`;
+        <div class="flex justify-between items-start"><span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-3xl font-black wild-val-display">${w.value || 0}</span></div>
+        <div class="color-picker-wheel">${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}</div></div>`;
 }
 
 // --- Logic & State Management ---
-
-function calculateSageProgress(round) {
-    const usedColors = new Set();
-    diceConfig.forEach(d => {
-        if (round[d.id] && round[d.id].length > 0) usedColors.add(d.id);
-    });
-    if (round.wild) {
-        round.wild.forEach(w => { if (w.value !== 0) usedColors.add(w.target); });
-    }
-    const count = usedColors.size;
-    const percentage = Math.min(100, (count / 6) * 100);
-    return { count, percentage };
-}
-
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
-    const newCount = rd.wild.length + delta;
-    if (newCount < 0 || newCount > 9) return;
-    const container = document.getElementById('wild-list-container');
+    if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
     if (delta > 0) {
-        const newWild = { value: 0, target: 'purple' };
-        rd.wild.push(newWild);
-        const temp = document.createElement('div');
-        temp.innerHTML = renderWildCardHtml(newWild, rd.wild.length - 1);
-        container.appendChild(temp.firstElementChild);
+        rd.wild.push({ value: 0, target: 'purple' });
     } else {
         rd.wild.pop();
-        if (container.lastElementChild) container.lastElementChild.remove();
         if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null;
     }
-    document.getElementById('wild-count-num').textContent = rd.wild.length;
-    updateAllDisplays(); saveGame();
+    renderGame(); saveGame();
 }
 
 function setWildTarget(idx, targetId) {
-    const roundData = activeGame.rounds[activeGame.currentRound];
-    roundData.wild[idx].target = targetId;
-
-    const config = diceConfig.find(d => d.id === targetId);
-    const card = document.getElementById(`wild-card-${idx}`);
-    
-    if (card) {
-        card.style.borderLeftColor = config.color;
-        const wheelItems = card.querySelectorAll('.wheel-item');
-        const selectableColors = diceConfig.filter(d => d.id !== 'yellow');
-        
-        selectableColors.forEach((colorObj, i) => {
-            if (wheelItems[i]) {
-                wheelItems[i].classList.toggle('selected', colorObj.id === targetId);
-            }
-        });
-    }
-
+    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
     setActiveWildInput(idx);
-    updateAllDisplays(); 
-    saveGame();
+    updateAllDisplays(); saveGame();
 }
 
 function toggleSparkle() {
@@ -358,8 +288,6 @@ function setActiveWildInput(idx) {
     activeInputField = `wild-${idx}`;
     document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
     document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
-    document.querySelectorAll('.kp-btn').forEach(b => { b.style.backgroundColor = "#fff"; b.style.color = "#000"; });
-    const addBtn = document.getElementById('add-btn'); if (addBtn) { addBtn.style.backgroundColor = '#16a34a'; addBtn.style.color = '#fff'; }
     updateKpDisplay();
 }
 
@@ -367,15 +295,9 @@ function setActiveInput(id) {
     activeInputField = id;
     document.querySelectorAll('.wild-card').forEach(c => c.classList.remove('active-input'));
     const config = diceConfig.find(d => d.id === id);
-    diceConfig.forEach(d => { const r = document.getElementById(`row-${d.id}`); if (r) { r.style.backgroundColor = ""; r.style.color = ""; } });
+    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
     const activeRow = document.getElementById(`row-${id}`);
     if (activeRow) { activeRow.style.backgroundColor = config.color; activeRow.style.color = config.text; }
-    document.querySelectorAll('.kp-btn').forEach(b => { b.style.backgroundColor = config.color; b.style.color = config.text; });
-    const addBtn = document.getElementById('add-btn');
-    if (addBtn) { 
-        addBtn.style.backgroundColor = config.text === '#fff' ? '#fff' : '#000'; 
-        addBtn.style.color = config.text === '#fff' ? '#000' : '#fff'; 
-    }
     updateKpDisplay();
 }
 
@@ -383,24 +305,17 @@ function updateAllDisplays() {
     const round = activeGame.rounds[activeGame.currentRound];
     if (!round) return;
     
-    // --- SAGE PROGRESS UI WITH GOLD COLOR ---
     const sage = calculateSageProgress(round);
-    const sageText = document.getElementById('sage-status-text');
-    const sageFill = document.getElementById('sage-progress-fill');
-    
-    if (sageText) {
-        sageText.textContent = `${sage.count}/6 Used${sage.count >= 6 ? ' - SAGE! ✨' : ''}`;
-        sageText.classList.toggle('text-yellow-500', sage.count >= 6);
-        sageText.classList.toggle('text-green-500', sage.count < 6);
+    const sText = document.getElementById('sage-status-text');
+    const sFill = document.getElementById('sage-progress-fill');
+    if (sText) {
+        sText.textContent = `${sage.count}/6 Used${sage.count >= 6 ? ' - SAGE! ✨' : ''}`;
+        sText.classList.toggle('text-yellow-500', sage.count >= 6);
+        sText.classList.toggle('text-green-500', sage.count < 6);
     }
-    
-    if (sageFill) {
-        sageFill.style.width = `${sage.percentage}%`;
-        if (sage.count >= 6) {
-            sageFill.className = "h-full bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 transition-all duration-500";
-        } else {
-            sageFill.className = "h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500";
-        }
+    if (sFill) {
+        sFill.style.width = `${sage.percentage}%`;
+        sFill.className = `h-full transition-all duration-500 ${sage.count >= 6 ? 'bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : 'bg-gradient-to-r from-green-500 to-emerald-400'}`;
     }
 
     const wildBonuses = {};
@@ -409,6 +324,7 @@ function updateAllDisplays() {
         const displays = document.querySelectorAll('.wild-val-display');
         if (displays[i]) displays[i].textContent = w.value || 0;
     });
+
     diceConfig.forEach(d => {
         const vals = round[d.id] || [];
         let base = (vals.reduce((a, b) => a + b, 0)) + (wildBonuses[d.id] || 0);
@@ -422,11 +338,7 @@ function updateAllDisplays() {
         if (valEl) {
             valEl.innerHTML = vals.map((v, i) => `
                 <span class="inline-flex items-center bg-black/10 px-5 py-3 rounded-2xl text-xl font-black shadow-sm border border-black/5 active:scale-95 transition-transform">
-                    ${v} 
-                    <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" 
-                            class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg leading-none opacity-60 active:bg-red-500 active:text-white transition-colors">
-                        ×
-                    </button>
+                    ${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg opacity-60">×</button>
                 </span>`).join('');
         }
     });
@@ -449,17 +361,10 @@ function calculateRoundTotal(round) {
     return total;
 }
 
-// --- Keypad Logic ---
 function kpInput(v) { keypadValue += v; updateKpDisplay(); }
 function kpClear() { keypadValue = ''; updateKpDisplay(); }
-function kpToggleNeg() { 
-    keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); 
-    updateKpDisplay(); 
-}
-function updateKpDisplay() { 
-    const d = document.getElementById('active-input-display'); 
-    if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); 
-}
+function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); updateKpDisplay(); }
+function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); }
 function kpEnter() {
     if (!activeInputField || !keypadValue || keypadValue === '-') return;
     const rd = activeGame.rounds[activeGame.currentRound];
@@ -471,25 +376,19 @@ function kpEnter() {
     kpClear(); updateAllDisplays(); saveGame();
 }
 
-// --- Global Utilities ---
-
 function changeRound(s) { 
-    const currentRoundData = activeGame.rounds[activeGame.currentRound];
-    const sage = calculateSageProgress(currentRoundData);
-    
-    // Sage Celebration trigger
-    if (s === 1 && sage.count >= 6) {
-        showSagePopup();
-    }
+    const currentRoundIdx = activeGame.currentRound;
+    const currentRoundData = activeGame.rounds[currentRoundIdx];
+    const sageNow = calculateSageProgress(currentRoundData).count >= 6;
+    const completedPreviously = activeGame.rounds.slice(0, currentRoundIdx).some(r => calculateSageProgress(r).count >= 6);
+
+    if (s === 1 && sageNow && !completedPreviously) { showSagePopup(); }
     
     const n = activeGame.currentRound + s; 
     if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); } 
 }
 
-function removeVal(id, idx) { 
-    activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); 
-    updateAllDisplays(); saveGame(); 
-}
+function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); updateAllDisplays(); saveGame(); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function calculateGrandTotal(g) { return g.rounds.reduce((t, r) => t + calculateRoundTotal(r), 0); }
