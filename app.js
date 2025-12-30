@@ -21,7 +21,7 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Navigation & History ---
+// --- Home & Popups ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
         <h1 class="text-6xl font-black text-green-400">PANDA</h1>
@@ -42,13 +42,13 @@ function showHome() {
         </div>`).join('');
 
     app.innerHTML = `
-        <div class="p-6 h-full flex flex-col">
+        <div class="p-6 h-full flex flex-col animate-fadeIn">
             <div class="flex justify-between items-center mb-8">
                 <h1 class="text-4xl font-black tracking-tighter">History</h1>
                 <button onclick="toggleMenu()" class="p-2 bg-black/5 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" d="M4 6h16M4 12h16m-7 6h7"></path></svg></button>
             </div>
             <div class="flex-1 overflow-y-auto">${list || '<p class="opacity-30 italic text-center py-20">No games found.</p>'}</div>
-            <button onclick="startNewGame()" class="w-full bg-green-600 py-5 rounded-3xl font-black text-xl text-white mt-6">NEW GAME</button>
+            <button onclick="startNewGame()" class="w-full bg-green-600 py-5 rounded-3xl font-black text-xl text-white mt-6 shadow-xl">NEW GAME</button>
         </div>`;
 }
 
@@ -67,63 +67,22 @@ function openGameActions(index) {
     document.body.appendChild(overlay);
 }
 
-function resumeGame(i) {
-    activeGame = games[i];
-    document.getElementById('action-modal').remove();
-    renderGame();
-}
-
-function confirmDelete(index) {
-    if(confirm("Delete this game?")) {
-        games.splice(index, 1);
-        saveGame();
-        document.getElementById('action-modal').remove();
-        showHome();
-    }
-}
-
-function clearHistory() {
-    if(confirm("Wipe all game history?")) {
-        games = [];
-        saveGame();
-        toggleMenu();
-        showHome();
-    }
-}
-
-// --- Gameplay ---
+// --- Round Core ---
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
 
-    let prevYellowHtml = '';
-    if (activeGame.currentRound > 0) {
-        const prevSum = (activeGame.rounds[activeGame.currentRound - 1].yellow || []).reduce((a, b) => a + b, 0);
-        prevYellowHtml = `<div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${prevSum}</span></div>`;
-    }
+    let prevYellowHtml = (activeGame.currentRound > 0) ? 
+        `<div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${(activeGame.rounds[activeGame.currentRound - 1].yellow || []).reduce((a, b) => a + b, 0)}</span></div>` : '';
 
-    let sageMeterHtml = '';
-    if (roundNum >= 2) {
-        sageMeterHtml = `<div class="sage-meter-container">
+    let sageMeterHtml = (roundNum >= 2) ? 
+        `<div class="sage-meter-container">
             <div class="flex justify-between items-center"><span class="text-[10px] font-black uppercase opacity-40">Sage Meter</span><span id="sage-percent-text" class="text-[10px] font-black text-teal-500 uppercase">0% Sage</span></div>
             <div class="sage-meter-bg"><div id="sage-meter-bar"></div></div>
-        </div>`;
-    }
-
-    let topWildCounterHtml = '';
-    if (roundNum >= 2) {
-        topWildCounterHtml = `<div class="wild-counter-top">
-            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Setup</span>
-            <div class="counter-controls">
-                <button onclick="adjustWildCount(-1)" class="counter-btn">-</button>
-                <span id="wild-count-num" class="text-4xl font-black">${(roundData.wild || []).length}</span>
-                <button onclick="adjustWildCount(1)" class="counter-btn">+</button>
-            </div>
-        </div>`;
-    }
+        </div>` : '';
 
     app.innerHTML = `
-        <div class="scroll-area">
+        <div class="scroll-area" id="game-scroll">
             <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
                 <button onclick="showHome()" class="text-[10px] font-black uppercase opacity-50 px-3 py-2 rounded-lg bg-black/5">Exit</button>
                 <div class="flex items-center gap-6">
@@ -133,20 +92,31 @@ function renderGame() {
                 </div>
                 <div class="w-10"></div>
             </div>
+            
             <div class="p-4 pb-8">
                 ${prevYellowHtml}
                 ${sageMeterHtml}
-                ${topWildCounterHtml}
                 <div class="space-y-3">
                     ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
-                    <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6 ${(roundData.wild || []).length === 0 ? 'hidden' : ''}">
-                        <div class="text-[10px] font-black uppercase opacity-40 mb-3 ml-2 text-center">Wild Assignments</div>
-                        <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
+                    
+                    <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6 ${roundNum === 1 ? 'hidden' : ''}">
+                        <div class="wild-header-container">
+                            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Setup</span>
+                            <div class="counter-mini-controls">
+                                <button onclick="adjustWildCount(-1)" class="counter-mini-btn">-</button>
+                                <span id="wild-count-num" class="text-2xl font-black">${(roundData.wild || []).length}</span>
+                                <button onclick="adjustWildCount(1)" class="counter-mini-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="wild-stack" id="wild-list-container">
+                            ${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}
+                        </div>
                     </div>
                 </div>
                 <div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
             </div>
         </div>
+
         <div class="keypad-area p-4 shadow-2xl flex flex-col">
             <div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div>
             <div class="grid grid-cols-4 gap-2 flex-1">
@@ -179,39 +149,46 @@ function renderWildCardHtml(w, idx) {
     </div>`;
 }
 
-// --- Engine ---
+// --- Logic & Partial DOM Sync ---
+function adjustWildCount(delta) {
+    const rd = activeGame.rounds[activeGame.currentRound];
+    if (!rd.wild) rd.wild = [];
+    const newCount = rd.wild.length + delta;
+    if (newCount < 0 || newCount > 9) return;
+    const container = document.getElementById('wild-list-container');
+    if (delta > 0) {
+        const nw = { value: 0, target: 'purple' };
+        rd.wild.push(nw);
+        const temp = document.createElement('div');
+        temp.innerHTML = renderWildCardHtml(nw, rd.wild.length - 1);
+        container.appendChild(temp.firstElementChild);
+    } else {
+        const last = document.getElementById(`wild-card-${rd.wild.length - 1}`);
+        if (last) last.remove();
+        rd.wild.pop();
+        if (activeInputField === `wild-${rd.wild.length}`) activeInputField = null;
+    }
+    document.getElementById('wild-count-num').textContent = rd.wild.length;
+    updateAllDisplays(); saveGame();
+}
+
 function updateSageMeter() {
     const round = activeGame.rounds[activeGame.currentRound];
-    if (activeGame.currentRound === 0) return; // Only R2-10
-
+    if (activeGame.currentRound === 0) return;
     const wildTargets = (round.wild || []).filter(w => w.value > 0).map(w => w.target);
     let count = 0;
-    diceConfig.forEach(d => {
-        if ((round[d.id] && round[d.id].length > 0) || wildTargets.includes(d.id)) count++;
-    });
-
+    diceConfig.forEach(d => { if ((round[d.id] && round[d.id].length > 0) || wildTargets.includes(d.id)) count++; });
     const percent = Math.min(Math.round((count / 6) * 100), 100);
     const bar = document.getElementById('sage-meter-bar');
     const text = document.getElementById('sage-percent-text');
     if (bar) bar.style.width = percent + '%';
     if (text) text.textContent = percent === 100 ? 'Sage Fulfilled ✨' : percent + '% Sage';
-
     if (percent === 100 && !round.sagePopupTriggered) {
         round.sagePopupTriggered = true;
-        triggerSagePopup();
+        const overlay = document.createElement('div'); overlay.className = 'modal-overlay animate-fadeIn'; overlay.onclick = () => overlay.remove();
+        overlay.innerHTML = `<div class="action-popup"><h2 class="text-4xl font-black text-teal-400 mb-4">✨ 100% SAGE!</h2><p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Sage Meter Reached</p></div>`;
+        document.body.appendChild(overlay);
     }
-}
-
-function triggerSagePopup() {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay animate-fadeIn';
-    overlay.onclick = () => overlay.remove();
-    overlay.innerHTML = `<div class="action-popup">
-        <h2 class="text-4xl font-black text-teal-400 mb-4">✨ 100% SAGE!</h2>
-        <p class="text-slate-500 font-bold uppercase tracking-widest text-xs">Sage Meter Reached</p>
-        <button class="mt-8 bg-teal-500 text-white px-8 py-3 rounded-xl font-black">AWESOME</button>
-    </div>`;
-    document.body.appendChild(overlay);
 }
 
 function updateAllDisplays() {
@@ -222,62 +199,27 @@ function updateAllDisplays() {
         const displays = document.querySelectorAll('.wild-val-display');
         if (displays[i]) displays[i].textContent = w.value || 0;
     });
-
     diceConfig.forEach(d => {
         const vals = round[d.id] || [];
         let base = (vals.reduce((a, b) => a + b, 0)) + (wildBonuses[d.id] || 0);
-        let score = base;
-        if (d.id === 'purple') score = base * 2;
-        else if (d.id === 'blue' && round.blueHasSparkle) score = base * 2;
-        else if (d.id === 'red') score = base * vals.length;
+        let score = (d.id === 'purple' || (d.id === 'blue' && round.blueHasSparkle)) ? base * 2 : (d.id === 'red') ? base * vals.length : base;
         if (document.getElementById(`${d.id}-sum`)) document.getElementById(`${d.id}-sum`).textContent = score;
         const valEl = document.getElementById(`${d.id}-values`);
         if (valEl) valEl.innerHTML = vals.map((v, i) => `<span class="bg-black/10 px-3 py-1 rounded-lg text-sm font-black">${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" class="ml-2 opacity-30">×</button></span>`).join('');
     });
-    
     document.getElementById('round-total-display').textContent = calculateRoundTotal(round);
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
     updateSageMeter();
 }
 
-// Logic Support
-function calculateRoundTotal(round) {
-    let total = 0;
-    const wildBonuses = {};
-    (round.wild || []).forEach(w => wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0));
-    diceConfig.forEach(d => {
-        const vals = round[d.id] || [];
-        let base = (vals.reduce((a, b) => a + b, 0)) + (wildBonuses[d.id] || 0);
-        if (d.id === 'purple') total += (base * 2);
-        else if (d.id === 'blue' && round.blueHasSparkle) total += (base * 2);
-        else if (d.id === 'red') total += (base * vals.length);
-        else total += base;
-    });
-    return total;
+// Handlers
+function toggleSparkle() { 
+    const rd = activeGame.rounds[activeGame.currentRound]; 
+    rd.blueHasSparkle = !rd.blueHasSparkle; 
+    const btn = document.getElementById('sparkle-btn');
+    if (btn) { btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'; btn.className = `sparkle-btn-full ${rd.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}`; }
+    updateAllDisplays(); saveGame(); 
 }
-
-function adjustWildCount(delta) {
-    const rd = activeGame.rounds[activeGame.currentRound];
-    if (!rd.wild) rd.wild = [];
-    const newCount = rd.wild.length + delta;
-    if (newCount < 0 || newCount > 9) return;
-    if (delta > 0) {
-        const nw = { value: 0, target: 'purple' };
-        rd.wild.push(nw);
-        const container = document.getElementById('wild-list-container');
-        const temp = document.createElement('div');
-        temp.innerHTML = renderWildCardHtml(nw, rd.wild.length - 1);
-        container.appendChild(temp.firstElementChild);
-    } else {
-        const last = document.getElementById(`wild-card-${rd.wild.length - 1}`);
-        if (last) last.remove();
-        rd.wild.pop();
-    }
-    document.getElementById('wild-count-num').textContent = rd.wild.length;
-    document.getElementById('wild-section-header').classList.toggle('hidden', rd.wild.length === 0);
-    updateAllDisplays(); saveGame();
-}
-
 function setWildTarget(idx, targetId) {
     activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
     const card = document.getElementById(`wild-card-${idx}`);
@@ -288,32 +230,27 @@ function setWildTarget(idx, targetId) {
     }
     updateAllDisplays(); saveGame();
 }
-
 function kpInput(v) { keypadValue += v; updateKpDisplay(); }
 function kpClear() { keypadValue = ''; updateKpDisplay(); }
 function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); updateKpDisplay(); }
-function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Input: ${activeInputField.toUpperCase()}` : '-'); }
+function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); }
 function kpEnter() {
     if (!activeInputField || !keypadValue || keypadValue === '-') return;
     const rd = activeGame.rounds[activeGame.currentRound];
     if (activeInputField.startsWith('wild-')) { rd.wild[parseInt(activeInputField.split('-')[1])].value = parseFloat(keypadValue); }
-    else { rd[activeInputField].push(parseFloat(keypadValue)); }
+    else { if(!rd[activeInputField]) rd[activeInputField] = []; rd[activeInputField].push(parseFloat(keypadValue)); }
     kpClear(); updateAllDisplays(); saveGame();
 }
-
 function setActiveInput(id) {
-    activeInputField = id;
-    document.querySelectorAll('.wild-card').forEach(c => c.classList.remove('active-input'));
+    activeInputField = id; document.querySelectorAll('.wild-card').forEach(c => c.classList.remove('active-input'));
     const config = diceConfig.find(d => d.id === id);
     diceConfig.forEach(d => { const r = document.getElementById(`row-${d.id}`); if (r) { r.style.backgroundColor = ""; r.style.color = ""; } });
     const activeRow = document.getElementById(`row-${id}`);
     if (activeRow) { activeRow.style.backgroundColor = config.color; activeRow.style.color = config.text; }
     document.querySelectorAll('.kp-btn').forEach(b => { b.style.backgroundColor = config.color; b.style.color = config.text; });
-    const addBtn = document.getElementById('add-btn');
-    if (addBtn) { addBtn.style.backgroundColor = config.text === '#fff' ? '#fff' : '#000'; addBtn.style.color = config.text === '#fff' ? '#000' : '#fff'; }
+    const addBtn = document.getElementById('add-btn'); if (addBtn) { addBtn.style.backgroundColor = config.text === '#fff' ? '#fff' : '#000'; addBtn.style.color = config.text === '#fff' ? '#000' : '#fff'; }
     updateKpDisplay();
 }
-
 function setActiveWildInput(idx) {
     activeInputField = `wild-${idx}`;
     document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
@@ -322,13 +259,27 @@ function setActiveWildInput(idx) {
     const addBtn = document.getElementById('add-btn'); if (addBtn) { addBtn.style.backgroundColor = '#16a34a'; addBtn.style.color = '#fff'; }
     updateKpDisplay();
 }
-
 function changeRound(s) { const n = activeGame.currentRound + s; if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); } }
 function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); updateAllDisplays(); saveGame(); }
-function toggleSparkle() { activeGame.rounds[activeGame.currentRound].blueHasSparkle = !activeGame.rounds[activeGame.currentRound].blueHasSparkle; updateAllDisplays(); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function calculateGrandTotal(g) { return g.rounds.reduce((t, r) => t + calculateRoundTotal(r), 0); }
+function calculateRoundTotal(round) {
+    let total = 0; const wildBonuses = {}; (round.wild || []).forEach(w => wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0));
+    diceConfig.forEach(d => {
+        const vals = round[d.id] || []; let base = (vals.reduce((a, b) => a + b, 0)) + (wildBonuses[d.id] || 0);
+        if (d.id === 'purple' || (d.id === 'blue' && round.blueHasSparkle)) total += (base * 2); else if (d.id === 'red') total += (base * vals.length); else total += base;
+    }); return total;
+}
+function resumeGame(i) { activeGame = games[i]; renderGame(); }
+function confirmDelete(index) { if(confirm("Delete?")) { games.splice(index, 1); saveGame(); showHome(); } }
+function toggleMenu() {
+    const existing = document.getElementById('menu-overlay'); if (existing) { existing.remove(); return; }
+    const menu = document.createElement('div'); menu.id = 'menu-overlay'; menu.className = 'modal-overlay justify-end animate-fadeIn'; menu.onclick = (e) => { if(e.target === menu) toggleMenu(); };
+    menu.innerHTML = `<div class="menu-panel flex flex-col"><h2 class="text-xl font-black uppercase mb-10">Settings</h2><button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 mb-3 ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">Dark Navy</button><button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">Off-White</button><button onclick="clearHistory()" class="mt-auto text-red-600 font-bold p-4 opacity-50 italic">Clear History</button></div>`;
+    document.body.appendChild(menu);
+}
+function clearHistory() { if(confirm("Clear all?")) { games = []; saveGame(); toggleMenu(); showHome(); } }
 function startNewGame() { activeGame = { id: Date.now(), date: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), currentRound: 0, rounds: Array(10).fill(null).map(() => ({ yellow: [], purple: [], blue: [], red: [], green: [], clear: [], pink: [], wild: [], blueHasSparkle: false, sagePopupTriggered: false })) }; games.unshift(activeGame); saveGame(); renderGame(); }
 
 applySettings();
