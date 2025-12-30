@@ -32,9 +32,9 @@ body {
 .scroll-area { height: 65%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .keypad-area { height: 35%; position: relative; z-index: 50; background-color: var(--bg-keypad); border-top: 1px solid var(--border-ui); }
 
-.dice-row { background-color: var(--bg-card); transition: all 0.2s ease; border-left-width: 8px; }
+.dice-row { background-color: var(--bg-card); transition: all 0.2s ease; border-left-width: 8px; border-left-color: transparent; }
 
-/* Modern Navigation Chevron Buttons */
+/* Modern Chevron Buttons */
 .nav-btn-circle {
     width: 48px; height: 48px; border-radius: 50%;
     background-color: rgba(0, 0, 0, 0.05);
@@ -44,40 +44,26 @@ body {
 .nav-btn-circle:active { transform: scale(0.9); background-color: rgba(59, 130, 246, 0.1); }
 .nav-btn-circle.disabled { opacity: 0; pointer-events: none; }
 
-/* Taller Yellow Box */
-.prev-round-box {
-    background-color: #fbbf24; color: #000; border-radius: 24px;
-    padding: 32px 24px; font-weight: 900; font-size: 0.9rem; margin-bottom: 16px;
-    display: flex; justify-content: space-between; align-items: center;
-}
-
-/* Sage Meter & Status */
+/* Yellow Box & Sage Meter */
+.prev-round-box { background-color: #fbbf24; color: #000; border-radius: 24px; padding: 32px 24px; font-weight: 900; font-size: 0.9rem; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
 .sage-meter-container { background-color: var(--bg-card); border-radius: 16px; padding: 14px; margin-bottom: 20px; border: 1px solid var(--border-ui); transition: all 0.4s ease; }
 .sage-bar-bg { background: rgba(0, 0, 0, 0.1); height: 10px; border-radius: 5px; overflow: hidden; margin-top: 8px; }
 .sage-bar-fill { background-color: #b2ac88; height: 100%; width: 0%; transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .sage-status-text { font-size: 10px; font-weight: 900; text-transform: uppercase; display: flex; justify-content: space-between; }
 
 /* Wild Counter - White/Red/Black */
-.wild-counter-top {
-    background-color: white !important; color: #000 !important; border-radius: 20px;
-    padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 12px; border: 1px solid #e2e8f0;
-}
+.wild-counter-top { background-color: white !important; color: #000 !important; border-radius: 20px; padding: 20px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 1px solid #e2e8f0; }
 .btn-minus { background-color: #dc2626; color: white; }
 .btn-plus { background-color: #000000; color: white; }
 .counter-controls { display: flex; align-items: center; gap: 32px; }
 .counter-btn { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 900; }
 
-.wild-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .wild-card { background-color: white; color: #000; border-radius: 20px; padding: 16px; border: 3px solid transparent; transition: all 0.2s ease; display: flex; flex-direction: column; gap: 12px; }
 .wild-card.active-input { background-color: #000 !important; color: #fff !important; border-color: #16a34a; }
-
-.color-picker-wheel { display: flex; justify-content: center; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05); }
 .wheel-item { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ddd; }
 .wheel-item.selected { transform: scale(1.3); border-color: #000; }
 
 .kp-btn { transition: all 0.1s ease; border-radius: 18px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .action-popup { width: 85%; max-width: 320px; background-color: var(--bg-main); border: 1px solid var(--border-ui); border-radius: 32px; padding: 2rem; text-align: center; }
-.menu-panel { width: 280px; height: 100%; background: var(--bg-main); border-left: 1px solid var(--border-ui); padding: 2rem; }
 .grand-total-footer { background-color: white; color: #0f172a; border-radius: 24px; padding: 24px; text-align: center; margin: 2rem 0; }
