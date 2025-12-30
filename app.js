@@ -31,7 +31,7 @@ function showSplash() {
 }
 
 function showHome() {
-    const list = games.map((g, i) => `
+    const gameCards = games.map((g, i) => `
         <div class="bg-[var(--bg-card)] p-6 rounded-2xl mb-4 flex justify-between items-center border border-[var(--border-ui)] active:scale-[0.98] transition-all" onclick="openGameActions(${i})">
             <div class="flex-1">
                 <div class="text-[10px] font-black opacity-40 uppercase tracking-widest">Game #${games.length - i}</div>
@@ -40,17 +40,25 @@ function showHome() {
             <div class="text-3xl font-black" style="color: var(--color-score)">${calculateGrandTotal(g)}</div>
         </div>`).join('');
 
+    // Fixed: Explicit check for empty history
+    const listContent = gameCards.length > 0 ? gameCards : '<p class="opacity-30 italic text-center py-20">No games found.</p>';
+
     app.innerHTML = `
         <div class="p-6 h-full flex flex-col animate-fadeIn">
             <div class="flex justify-between items-center mb-8">
                 <h1 class="text-4xl font-black tracking-tighter">History</h1>
-                <button onclick="toggleMenu()" class="p-2 bg-black/5 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" d="M4 6h16M4 12h16m-7 6h7"></path></svg></button>
+                <button onclick="toggleMenu()" class="p-2 bg-black/5 rounded-xl">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-width="2.5" stroke-linecap="round" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
             </div>
-            <div class="flex-1 overflow-y-auto">${list || '<p class="opacity-30 italic text-center py-20">No games found.</p>'}</div>
+            <div class="flex-1 overflow-y-auto">${listContent}</div>
             <button onclick="startNewGame()" class="w-full bg-green-600 py-5 rounded-3xl font-black text-xl text-white mt-6 shadow-xl">NEW GAME</button>
         </div>`;
 }
 
+// --- Popups Logic ---
 function openGameActions(index) {
     const overlay = document.createElement('div');
     overlay.id = 'action-modal';
@@ -92,12 +100,23 @@ function toggleMenu() {
     document.body.appendChild(menu);
 }
 
+// Fixed: Correct logic for clearing global array and resetting state
+function clearHistory() {
+    if (confirm("Delete ALL games in history? This cannot be undone.")) {
+        games.length = 0; 
+        activeGame = null;
+        activeInputField = null;
+        saveGame();
+        toggleMenu();
+        showHome();
+    }
+}
+
 // --- Gameplay Render ---
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
 
-    // Modern Chevrons
     const leftChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>`;
     const rightChevron = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>`;
 
