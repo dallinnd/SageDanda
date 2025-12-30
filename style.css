@@ -92,6 +92,14 @@ body.light-theme .prev-total-box {
     border-color: #cbd5e1;
 }
 
+/* Expansion Pack Gradient Text */
+.expansion-gradient {
+    background: linear-gradient(to right, #a855f7, #ef4444, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
+
 /* Wild Cards Stack */
 .wild-stack { display: flex; flex-direction: column; gap: 12px; }
 .wild-card {
