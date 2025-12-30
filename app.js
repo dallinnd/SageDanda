@@ -265,10 +265,32 @@ function adjustWildCount(delta) {
     updateAllDisplays(); saveGame();
 }
 
+// FIXED: Now manually updates the DOM for immediate visual feedback
 function setWildTarget(idx, targetId) {
-    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
-    setActiveWildInput(idx); // UX: Automatically select this die when color is picked
-    updateAllDisplays(); saveGame();
+    const roundData = activeGame.rounds[activeGame.currentRound];
+    roundData.wild[idx].target = targetId;
+
+    const config = diceConfig.find(d => d.id === targetId);
+    const card = document.getElementById(`wild-card-${idx}`);
+    
+    if (card) {
+        // Update the card border color
+        card.style.borderLeftColor = config.color;
+        
+        // Update the color wheel selections
+        const wheelItems = card.querySelectorAll('.wheel-item');
+        const selectableColors = diceConfig.filter(d => d.id !== 'yellow');
+        
+        selectableColors.forEach((colorObj, i) => {
+            if (wheelItems[i]) {
+                wheelItems[i].classList.toggle('selected', colorObj.id === targetId);
+            }
+        });
+    }
+
+    setActiveWildInput(idx); // UX: Automatically select this die
+    updateAllDisplays(); 
+    saveGame();
 }
 
 function toggleSparkle() {
