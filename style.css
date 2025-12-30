@@ -98,6 +98,33 @@ body.light-theme .prev-total-box {
     border-color: #cbd5e1;
 }
 
+/* Section Header Styling */
+.section-title {
+    text-align: center;
+    margin-top: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-title h3 {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    opacity: 0.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.section-title h3::before,
+.section-title h3::after {
+    content: "";
+    height: 1px;
+    width: 40px;
+    background-color: var(--border-ui);
+}
+
 /* Expansion Pack Gradient Text */
 .expansion-gradient {
     background: linear-gradient(to bottom right, #a855f7, #ef4444, #a855f7);
