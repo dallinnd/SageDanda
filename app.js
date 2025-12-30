@@ -22,7 +22,7 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Home & Popups ---
+// --- Home ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
         <h1 class="text-6xl font-black text-green-400">PANDA</h1>
@@ -53,43 +53,20 @@ function showHome() {
         </div>`;
 }
 
-function openGameActions(index) {
-    const overlay = document.createElement('div');
-    overlay.id = 'action-modal'; overlay.className = 'modal-overlay animate-fadeIn';
-    overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
-    overlay.innerHTML = `<div class="action-popup">
-        <h2 class="text-2xl font-black mb-8 text-white">Game #${games.length - index}</h2>
-        <div class="flex justify-center gap-10">
-            <button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button>
-            <button onclick="confirmDelete(${index})" class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center text-white shadow-lg"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
-        </div>
-    </div>`;
-    document.body.appendChild(overlay);
-}
-
-function resumeGame(i) {
-    const modal = document.getElementById('action-modal'); if(modal) modal.remove();
-    activeGame = games[i]; renderGame();
-}
-
-function confirmDelete(index) {
-    if(confirm("Delete this game?")) {
-        games.splice(index, 1); saveGame();
-        const modal = document.getElementById('action-modal'); if(modal) modal.remove();
-        showHome();
-    }
-}
-
-// --- Round Navigation & Core ---
+// --- Render Round ---
 function renderGame() {
     const roundNum = activeGame.currentRound + 1;
     const roundData = activeGame.rounds[activeGame.currentRound];
 
-    // FIX: Variable captures previous total and locks it in a unique ID
+    // FIX: TALL PREV YELLOW BOX - Unique ID prevents math engine overwrite
     let prevYellowHtml = '';
     if (activeGame.currentRound > 0) {
-        const prevYellowValue = (activeGame.rounds[activeGame.currentRound - 1].yellow || []).reduce((a, b) => a + b, 0);
-        prevYellowHtml = `<div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl" id="locked-prev-yellow-total">${prevYellowValue}</span></div>`;
+        const prevSum = (activeGame.rounds[activeGame.currentRound - 1].yellow || []).reduce((a, b) => a + b, 0);
+        prevYellowHtml = `
+            <div class="prev-round-box-tall animate-fadeIn">
+                <div class="prev-round-label">Previous Round Yellow Total</div>
+                <div class="prev-round-value" id="protected-prev-yellow-display">${prevSum}</div>
+            </div>`;
     }
 
     let sageMeterHtml = (roundNum >= 2) ? 
@@ -167,7 +144,7 @@ function endNavJump(dir) {
     }
 }
 
-// --- Math & Displays ---
+// --- Math & Update Logic ---
 function updateAllDisplays() {
     const round = activeGame.rounds[activeGame.currentRound];
     const wildBonuses = {};
@@ -182,7 +159,7 @@ function updateAllDisplays() {
         let base = (vals.reduce((a, b) => a + b, 0)) + (wildBonuses[d.id] || 0);
         let score = (d.id === 'purple' || (d.id === 'blue' && round.blueHasSparkle)) ? base * 2 : (d.id === 'red') ? base * vals.length : base;
         
-        // Target only the specific current score elements
+        // Target only specific round score elements - NEVER targets "protected-prev-yellow-display"
         const scoreEl = document.getElementById(`score-val-${d.id}`); if (scoreEl) scoreEl.textContent = score;
         const valEl = document.getElementById(`values-${d.id}`); if (valEl) valEl.innerHTML = vals.map((v, i) => `<span class="bg-black/10 px-3 py-1 rounded-lg text-sm font-black">${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" class="ml-2 opacity-30">×</button></span>`).join('');
     });
@@ -201,23 +178,17 @@ function updateSageMeter() {
     if (bar) bar.style.width = percent + '%'; if (text) text.textContent = percent === 100 ? 'Sage Fulfilled ✨' : percent + '% Sage';
     if (percent === 100 && !round.sagePopupTriggered) {
         round.sagePopupTriggered = true;
-        if ("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
-        triggerSagePopup();
+        const overlay = document.createElement('div'); overlay.className = 'modal-overlay animate-fadeIn'; overlay.onclick = () => overlay.remove();
+        overlay.innerHTML = `<div class="action-popup">
+            <h2 class="text-4xl font-black text-teal-400 mb-2">SAGE COMPLETE!</h2>
+            <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Sage Meter Reached</p>
+            <div class="circle-check-btn"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg></div>
+        </div>`;
+        document.body.appendChild(overlay);
     }
 }
 
-function triggerSagePopup() {
-    const overlay = document.createElement('div'); overlay.className = 'modal-overlay animate-fadeIn';
-    overlay.onclick = () => overlay.remove();
-    overlay.innerHTML = `<div class="action-popup">
-        <h2 class="text-4xl font-black text-teal-400 mb-2">SAGE COMPLETE!</h2>
-        <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Sage Meter Reached</p>
-        <div class="circle-check-btn"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg></div>
-    </div>`;
-    document.body.appendChild(overlay);
-}
-
-// Handlers
+// Global Actions & Utilities
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound]; if (!rd.wild) rd.wild = [];
     if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
@@ -293,6 +264,13 @@ function calculateRoundTotal(round) {
         if (d.id === 'purple' || (d.id === 'blue' && round.blueHasSparkle)) total += (base * 2); else if (d.id === 'red') total += (base * vals.length); else total += base;
     }); return total;
 }
+function openGameActions(index) {
+    const overlay = document.createElement('div'); overlay.id = 'action-modal'; overlay.className = 'modal-overlay animate-fadeIn'; overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `<div class="action-popup"><h2 class="text-2xl font-black mb-8 text-white">Game #${games.length - index}</h2><div class="flex justify-center gap-10"><button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button><button onclick="confirmDelete(${index})" class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div>`;
+    document.body.appendChild(overlay);
+}
+function resumeGame(i) { const modal = document.getElementById('action-modal'); if(modal) modal.remove(); activeGame = games[i]; renderGame(); }
+function confirmDelete(index) { if(confirm("Delete?")) { games.splice(index, 1); saveGame(); const modal = document.getElementById('action-modal'); if(modal) modal.remove(); showHome(); } }
 function toggleMenu() {
     const existing = document.getElementById('menu-overlay'); if (existing) { existing.remove(); return; }
     const menu = document.createElement('div'); menu.id = 'menu-overlay'; menu.className = 'modal-overlay justify-end animate-fadeIn'; menu.onclick = (e) => { if(e.target === menu) toggleMenu(); };
