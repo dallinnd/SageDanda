@@ -159,6 +159,19 @@ function renderGame() {
         `).join('');
     }
 
+    // --- SAGE PROGRESS BAR COMPONENT ---
+    const sageBarHtml = roundNum >= 2 ? `
+        <div id="sage-container" class="mb-6 p-4 bg-black/5 rounded-3xl border border-[var(--border-ui)] animate-fadeIn">
+            <div class="flex justify-between items-end mb-2">
+                <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Sage Progress</span>
+                <span id="sage-status-text" class="text-xs font-black uppercase text-green-500">0/6 Used</span>
+            </div>
+            <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden">
+                <div id="sage-progress-fill" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+    ` : '';
+
     app.innerHTML = `
         <div class="scroll-area" id="game-scroll">
             <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
@@ -174,6 +187,8 @@ function renderGame() {
             <div class="p-4 pb-8">
                 ${prevRoundInfoHtml}
                 
+                ${sageBarHtml}
+
                 <div class="section-title animate-fadeIn" style="animation-delay: 0.1s">
                     <h3>Dice Calculators</h3>
                 </div>
@@ -244,6 +259,33 @@ function renderWildCardHtml(w, idx) {
 }
 
 // --- Logic & State Management ---
+
+// NEW: Helper to find progress
+function calculateSageProgress(round) {
+    const usedColors = new Set();
+    
+    // Check standard entries
+    diceConfig.forEach(d => {
+        if (round[d.id] && round[d.id].length > 0) {
+            usedColors.add(d.id);
+        }
+    });
+
+    // Check wild assignments
+    if (round.wild) {
+        round.wild.forEach(w => {
+            if (w.value !== 0) {
+                usedColors.add(w.target);
+            }
+        });
+    }
+
+    const count = usedColors.size;
+    // 100% Sage is 6 out of 7. Max display is 100%.
+    const percentage = Math.min(100, (count / 6) * 100);
+    return { count, percentage };
+}
+
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
@@ -265,7 +307,6 @@ function adjustWildCount(delta) {
     updateAllDisplays(); saveGame();
 }
 
-// FIXED: Now manually updates the DOM for immediate visual feedback
 function setWildTarget(idx, targetId) {
     const roundData = activeGame.rounds[activeGame.currentRound];
     roundData.wild[idx].target = targetId;
@@ -274,10 +315,7 @@ function setWildTarget(idx, targetId) {
     const card = document.getElementById(`wild-card-${idx}`);
     
     if (card) {
-        // Update the card border color
         card.style.borderLeftColor = config.color;
-        
-        // Update the color wheel selections
         const wheelItems = card.querySelectorAll('.wheel-item');
         const selectableColors = diceConfig.filter(d => d.id !== 'yellow');
         
@@ -288,7 +326,7 @@ function setWildTarget(idx, targetId) {
         });
     }
 
-    setActiveWildInput(idx); // UX: Automatically select this die
+    setActiveWildInput(idx);
     updateAllDisplays(); 
     saveGame();
 }
@@ -332,6 +370,14 @@ function setActiveInput(id) {
 function updateAllDisplays() {
     const round = activeGame.rounds[activeGame.currentRound];
     if (!round) return;
+    
+    // --- UPDATED: SAGE PROGRESS UI ---
+    const sage = calculateSageProgress(round);
+    const sageText = document.getElementById('sage-status-text');
+    const sageFill = document.getElementById('sage-progress-fill');
+    if (sageText) sageText.textContent = `${sage.count}/6 Used${sage.count >= 6 ? ' - SAGE! ✨' : ''}`;
+    if (sageFill) sageFill.style.width = `${sage.percentage}%`;
+
     const wildBonuses = {};
     (round.wild || []).forEach((w, i) => {
         wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0);
