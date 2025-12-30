@@ -74,6 +74,9 @@ function confirmDelete(index) {
 }
 
 function renderGame() {
+    const scrollArea = document.getElementById('game-scroll');
+    const savedScrollTop = scrollArea ? scrollArea.scrollTop : 0;
+
     const roundNum = activeGame.currentRound + 1;
     const rd = activeGame.rounds[activeGame.currentRound];
 
@@ -93,14 +96,6 @@ function renderGame() {
     }
 
     const wildCounterHtml = `<div class="wild-counter-top animate-fadeIn"><span class="text-[10px] font-black uppercase opacity-40">Wild Dice Quantity</span><div class="counter-controls"><button onclick="adjustWildCount(-1)" class="counter-btn btn-minus">-</button><span id="wild-count-num" class="text-4xl font-black">${(rd.wild || []).length}</span><button onclick="adjustWildCount(1)" class="counter-btn btn-plus">+</button></div></div>`;
-
-    let kpColor = "bg-black/5"; let kpText = "text-inherit"; let addBtnStyle = "background-color: #16a34a; color: #fff";
-    if (activeInputField && !activeInputField.startsWith('wild-')) {
-        const config = diceConfig.find(d => d.id === activeInputField);
-        kpColor = `style="background-color: ${config.color}"`;
-        kpText = `style="color: ${config.text}"`;
-        addBtnStyle = `style="background-color: ${config.text === '#fff' ? '#fff' : '#000'}; color: ${config.text === '#fff' ? '#000' : '#fff'}"`;
-    }
 
     app.innerHTML = `<div class="scroll-area" id="game-scroll">
             <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
@@ -127,18 +122,53 @@ function renderGame() {
             </div>
         </div>
         <div class="keypad-area p-4 flex flex-col">
-            <div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 uppercase opacity-60">${keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-')}</div>
-            <div class="grid grid-cols-4 gap-2 flex-1">
-                ${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn ${kpText}" ${kpColor}>${n}</button>`).join('')}
-                <button id="add-btn" onclick="kpEnter()" class="kp-btn row-span-4 h-full" ${addBtnStyle}>ADD</button>
-                ${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn ${kpText}" ${kpColor}>${n}</button>`).join('')}
-                ${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn ${kpText}" ${kpColor}>${n}</button>`).join('')}
+            <div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 uppercase opacity-60">-</div>
+            <div id="kp-grid" class="grid grid-cols-4 gap-2 flex-1">
+                ${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
+                <button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>
+                ${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
+                ${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
                 <button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button>
-                <button onclick="kpInput('0')" class="kp-btn ${kpText}" ${kpColor}>0</button>
+                <button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button>
                 <button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button>
             </div>
         </div>`;
+    
+    const newScrollArea = document.getElementById('game-scroll');
+    if (newScrollArea) newScrollArea.scrollTop = savedScrollTop;
+    
     updateAllDisplays();
+}
+
+function setActiveInput(id) {
+    activeInputField = id;
+    const config = diceConfig.find(d => d.id === id);
+
+    document.querySelectorAll('.dice-row').forEach(row => { row.style.backgroundColor = ""; row.style.color = ""; row.style.borderLeftColor = "transparent"; });
+    document.querySelectorAll('.wild-card').forEach(card => card.classList.remove('active-input'));
+
+    const activeRow = document.getElementById(`row-${id}`);
+    if (activeRow) { activeRow.style.backgroundColor = config.color; activeRow.style.color = config.text; activeRow.style.borderLeftColor = "currentColor"; }
+
+    const kpBtns = document.querySelectorAll('.kp-btn:not(#add-btn):not(.text-slate-400):not(.text-2xl)');
+    kpBtns.forEach(btn => { btn.style.backgroundColor = config.color; btn.style.color = config.text; });
+    
+    const addBtn = document.getElementById('add-btn');
+    if (addBtn) { addBtn.style.backgroundColor = config.text === '#fff' ? '#fff' : '#000'; addBtn.style.color = config.text === '#fff' ? '#000' : '#fff'; }
+    
+    updateKpDisplay();
+}
+
+function setActiveWildInput(idx) {
+    activeInputField = `wild-${idx}`;
+    document.querySelectorAll('.dice-row').forEach(row => { row.style.backgroundColor = ""; row.style.color = ""; });
+    document.querySelectorAll('.wild-card').forEach((card, i) => card.classList.toggle('active-input', i === idx));
+
+    const kpBtns = document.querySelectorAll('.kp-btn:not(#add-btn):not(.text-slate-400):not(.text-2xl)');
+    kpBtns.forEach(btn => { btn.style.backgroundColor = "#16a34a"; btn.style.color = "#fff"; });
+    const addBtn = document.getElementById('add-btn');
+    if (addBtn) { addBtn.style.backgroundColor = "#fff"; addBtn.style.color = "#000"; }
+    updateKpDisplay();
 }
 
 function updateAllDisplays() {
@@ -163,7 +193,7 @@ function updateAllDisplays() {
     });
 
     const count = filledColors.size;
-    if (count >= 6 && (activeGame.currentRound + 1) >= 2 && !round.sageQuestComplete) { round.sageQuestPending = true; } else { round.sageQuestPending = false; }
+    if (count >= 6 && (activeGame.currentRound + 1) >= 2 && !round.sageQuestComplete) round.sageQuestPending = true; else round.sageQuestPending = false;
 
     const bar = document.getElementById('sage-bar-progress');
     const text = document.getElementById('sage-count-text');
@@ -178,10 +208,7 @@ function updateAllDisplays() {
 function changeRound(s) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (s > 0 && rd.sageQuestPending && !rd.sageQuestComplete) {
-        showSagePopup(() => {
-            rd.sageQuestComplete = true; rd.sageQuestPending = false; saveGame();
-            const n = activeGame.currentRound + s; if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); }
-        });
+        showSagePopup(() => { rd.sageQuestComplete = true; rd.sageQuestPending = false; saveGame(); const n = activeGame.currentRound + s; if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); } });
         return;
     }
     const n = activeGame.currentRound + s; if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); }
@@ -192,9 +219,7 @@ function showSagePopup(cb) {
     o.onclick = () => { o.remove(); if (cb) cb(); };
     o.innerHTML = `<div class="bg-white rounded-[40px] p-10 flex flex-col items-center shadow-2xl scale-110">
         <h2 class="text-[#b2ac88] text-3xl font-black uppercase tracking-tighter mb-2">Sage Quest</h2>
-        <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg mt-6">
-            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
-        </div>
+        <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-lg mt-6"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div>
         <p class="mt-8 text-slate-400 text-[10px] font-black uppercase opacity-50">Tap to Proceed</p>
     </div>`;
     document.body.appendChild(o);
@@ -202,9 +227,9 @@ function showSagePopup(cb) {
 
 function renderDiceRow(dice, roundData) {
     const active = activeInputField === dice.id;
-    const style = active ? `style="background-color: ${dice.color}; color: ${dice.text}"` : '';
+    const style = active ? `style="background-color: ${dice.color}; color: ${dice.text}; border-left-color: currentColor"` : '';
     const sparkle = dice.id === 'blue' ? `<button onclick="event.stopPropagation(); toggleSparkle()" class="sparkle-btn-full ${roundData.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}">${roundData.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'}</button>` : '';
-    return `<div onclick="setActiveInput('${dice.id}')" class="dice-row p-5 rounded-2xl border-l-8 cursor-pointer" ${style}>
+    return `<div onclick="setActiveInput('${dice.id}')" id="row-${dice.id}" class="dice-row p-5 rounded-2xl border-l-8 cursor-pointer" ${style}>
         <div class="flex justify-between items-center"><span class="font-black uppercase tracking-tight">${dice.label}</span><span id="${dice.id}-sum" class="text-3xl font-black">0</span></div>
         <div id="${dice.id}-values" class="flex flex-wrap gap-2 mt-2 min-h-[10px]"></div>${sparkle}
     </div>`;
@@ -212,12 +237,24 @@ function renderDiceRow(dice, roundData) {
 
 function renderWildCardHtml(w, idx) {
     const c = diceConfig.find(d => d.id === w.target).color;
-    return `<div onclick="setActiveWildInput(${idx})" class="wild-card ${activeInputField === 'wild-'+idx ? 'active-input' : ''}" style="border-left: 8px solid ${c}">
-        <div class="flex justify-between items-start"><span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-3xl font-black wild-val-display">${w.value || 0}</span></div>
+    const active = activeInputField === `wild-${idx}`;
+    return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${active ? 'active-input' : ''}" style="border-left: 6px solid ${c}">
+        <div class="flex flex-col min-w-[60px]"><span class="text-[8px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-2xl font-black wild-val-display">${w.value || 0}</span></div>
         <div class="color-picker-wheel">
             ${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}
         </div>
     </div>`;
+}
+
+function setWildTarget(idx, tid) {
+    activeGame.rounds[activeGame.currentRound].wild[idx].target = tid;
+    const card = document.getElementById(`wild-card-${idx}`);
+    if (card) {
+        card.style.borderLeftColor = diceConfig.find(d => d.id === tid).color;
+        const items = card.querySelectorAll('.wheel-item');
+        diceConfig.filter(d => d.id !== 'yellow').forEach((t, i) => items[i].classList.toggle('selected', t.id === tid));
+    }
+    updateAllDisplays(); saveGame();
 }
 
 function adjustWildCount(delta) {
@@ -227,13 +264,11 @@ function adjustWildCount(delta) {
     renderGame(); saveGame();
 }
 
-function setWildTarget(idx, tid) { activeGame.rounds[activeGame.currentRound].wild[idx].target = tid; renderGame(); saveGame(); }
 function toggleSparkle() { const rd = activeGame.rounds[activeGame.currentRound]; rd.blueHasSparkle = !rd.blueHasSparkle; renderGame(); saveGame(); }
-function setActiveInput(id) { activeInputField = id; renderGame(); }
-function setActiveWildInput(idx) { activeInputField = `wild-${idx}`; renderGame(); }
-function kpInput(v) { keypadValue += v; renderGame(); }
-function kpClear() { keypadValue = ''; renderGame(); }
-function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); renderGame(); }
+function kpInput(v) { keypadValue += v; updateKpDisplay(); }
+function kpClear() { keypadValue = ''; updateKpDisplay(); }
+function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); updateKpDisplay(); }
+function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); }
 function kpEnter() {
     if (!activeInputField || !keypadValue || keypadValue === '-') return;
     const rd = activeGame.rounds[activeGame.currentRound];
