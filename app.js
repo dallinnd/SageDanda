@@ -137,6 +137,22 @@ function renderGame() {
         `;
     }
 
+    // Determine Dice Rows for the Round
+    let diceRowsHtml = '';
+    if (roundNum === 1) {
+        // Only show Yellow Dice for Round 1
+        const yellowDice = diceConfig.find(d => d.id === 'yellow');
+        diceRowsHtml = `
+            ${renderDiceRow(yellowDice, roundData)}
+            <div class="mt-16 text-center animate-fadeIn">
+                <div class="expansion-gradient text-xl font-black uppercase tracking-[0.2em]">Expansion Pack Edition</div>
+            </div>
+        `;
+    } else {
+        // Show all dice for other rounds
+        diceRowsHtml = diceConfig.map(dice => renderDiceRow(dice, roundData)).join('');
+    }
+
     app.innerHTML = `
         <div class="scroll-area" id="game-scroll">
             <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
@@ -152,7 +168,7 @@ function renderGame() {
             <div class="p-4 pb-8">
                 ${prevRoundInfoHtml}
                 <div class="space-y-3">
-                    ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
+                    ${diceRowsHtml}
                     
                     <div id="wild-section" class="wild-section-container ${roundNum < 2 ? 'hidden' : ''}">
                         <div class="wild-counter-inline shadow-sm">
