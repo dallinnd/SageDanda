@@ -90,15 +90,22 @@ function renderGame() {
                     ${diceConfig.map(dice => renderDiceRow(dice, roundData)).join('')}
                     
                     <div id="wild-section-header" class="mt-8 border-t border-[var(--border-ui)] pt-6 ${roundNum === 1 ? 'hidden' : ''}">
+    
                         <div class="wild-header-container">
-                            <span class="text-[10px] font-black uppercase opacity-40">Wild Dice Setup</span>
+                            <span class="text-[10px] font-black uppercase tracking-widest">Wild Dice Counter</span>
+        
                             <div class="counter-mini-controls">
-                                <button onclick="adjustWildCount(-1)" class="counter-mini-btn">-</button>
-                                <span id="wild-count-num" class="text-2xl font-black">${(roundData.wild || []).length}</span>
-                                <button onclick="adjustWildCount(1)" class="counter-mini-btn">+</button>
+                                <button onclick="adjustWildCount(-1)" class="counter-mini-btn btn-minus">-</button>
+            
+                                <span id="wild-count-num" class="text-3xl font-black text-black">${(roundData.wild || []).length}</span>
+            
+                                <button onclick="adjustWildCount(1)" class="counter-mini-btn btn-plus">+</button>
                             </div>
                         </div>
-                        <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
+    
+                        <div class="wild-stack" id="wild-list-container">
+                            ${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}
+                        </div>
                     </div>
                 </div>
                 <div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
