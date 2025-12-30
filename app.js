@@ -328,7 +328,6 @@ function updateAllDisplays() {
                 ×
             </button>
         </span>`).join('');
-        }
     });
     diceConfig.forEach(d => {
         const vals = round[d.id] || [];
