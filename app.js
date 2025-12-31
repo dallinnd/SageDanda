@@ -33,14 +33,24 @@ function showSplash() {
 }
 
 function showHome() {
-    const gameCards = games.map((g, i) => `
+    const gameCards = games.map((g, i) => {
+        const isFinished = g.currentRound === 9;
+        const statusBadge = isFinished 
+            ? `<span class="ml-2 px-2 py-0.5 bg-green-500/20 text-green-500 text-[8px] font-black rounded-full border border-green-500/30 uppercase tracking-widest">Finished</span>` 
+            : `<span class="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-500 text-[8px] font-black rounded-full border border-blue-500/30 uppercase tracking-widest">Round ${g.currentRound + 1}</span>`;
+
+        return `
         <div class="bg-[var(--bg-card)] p-6 rounded-2xl mb-4 flex justify-between items-center border border-[var(--border-ui)] active:scale-[0.98] transition-all" onclick="openGameActions(${i})">
             <div class="flex-1">
-                <div class="text-[10px] font-black opacity-40 uppercase tracking-widest">${g.mode || 'normal'} Game #${games.length - i}</div>
-                <div class="text-xl font-bold">${g.date}</div>
+                <div class="flex items-center text-[10px] font-black opacity-40 uppercase tracking-widest">
+                    ${g.mode || 'normal'} #${games.length - i} ${statusBadge}
+                </div>
+                <div class="text-xl font-bold mt-1">${g.date}</div>
             </div>
             <div class="text-3xl font-black" style="color: var(--color-score)">${calculateGrandTotal(g)}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
+
     const listContent = gameCards.length > 0 ? gameCards : '<p class="opacity-30 italic text-center py-20">No games found.</p>';
     app.innerHTML = `<div class="p-6 h-full flex flex-col animate-fadeIn">
         <div class="flex justify-between items-center mb-8">
@@ -214,7 +224,6 @@ function updateAllDisplays() {
     const wildBonuses = {};
     (round.wild || []).forEach((w, i) => {
         wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0);
-        // FIX: Update individual value labels on the Wild Cards
         const displays = document.querySelectorAll('.wild-val-display');
         if (displays[i]) displays[i].textContent = w.value || 0;
     });
