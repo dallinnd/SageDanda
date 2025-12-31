@@ -212,7 +212,12 @@ function updateAllDisplays() {
     }
 
     const wildBonuses = {};
-    (round.wild || []).forEach(w => { wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0); });
+    (round.wild || []).forEach((w, i) => {
+        wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0);
+        // FIX: Update individual value labels on the Wild Cards
+        const displays = document.querySelectorAll('.wild-val-display');
+        if (displays[i]) displays[i].textContent = w.value || 0;
+    });
 
     [...diceConfig, sageDiceConfig].forEach(d => {
         const sumEl = document.getElementById(`${d.id}-sum`);
@@ -227,7 +232,7 @@ function updateAllDisplays() {
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
 }
 
-// --- Smooth Interaction Logic (No Scroll Jump) ---
+// --- Smooth Interaction Logic ---
 function toggleSparkle() {
     const rd = activeGame.rounds[activeGame.currentRound];
     rd.blueHasSparkle = !rd.blueHasSparkle;
