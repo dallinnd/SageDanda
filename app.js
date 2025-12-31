@@ -6,9 +6,10 @@ const diceConfig = [
     { id: 'red', label: 'Red (Sum × # of Red)', color: '#ef4444', text: '#fff' },
     { id: 'green', label: 'Green', color: '#22c55e', text: '#fff' },
     { id: 'clear', label: 'Clear', color: '#cbd5e1', text: '#000' },
-    { id: 'pink', label: 'Pink', color: '#ec4899', text: '#fff' }
+    { id: 'pink', label: 'Pink', color: '#ec4899', text: '#fff' } // Label changed to Pink
 ];
 
+// 2. State Initialization
 let games = JSON.parse(localStorage.getItem('panda_games')) || [];
 let settings = JSON.parse(localStorage.getItem('panda_settings')) || { theme: 'dark' };
 let activeGame = null;
@@ -16,7 +17,7 @@ let keypadValue = '';
 let activeInputField = null;
 const app = document.getElementById('app');
 
-// 2. Core Logic Helpers
+// 3. Core Logic Helpers
 function calculateRoundTotal(round) {
     if (!round) return 0;
     let total = 0;
@@ -31,7 +32,10 @@ function calculateRoundTotal(round) {
         else if (d.id === 'red') total += (base * vals.length);
         else total += base;
     });
-    if (round.sage) total += round.sage.reduce((a, b) => a + b, 0);
+    // Add new Sage row totals if they exist
+    if (round.sage) {
+        total += round.sage.reduce((a, b) => a + b, 0);
+    }
     return total;
 }
 
@@ -49,12 +53,22 @@ function calculateSageProgress(round) {
     return { count, percentage: Math.min(100, (count / 6) * 100) };
 }
 
+// Checks if Sage was finished in this round OR any previous round
 function isSageAlreadyCompleteBy(roundIdx) {
     if (!activeGame) return false;
     return activeGame.rounds.slice(0, roundIdx + 1).some(r => calculateSageProgress(r).count >= 6);
 }
 
-// 3. Navigation & Main Views
+// 4. Theme & Storage
+function applySettings() {
+    document.body.classList.toggle('light-theme', settings.theme === 'light');
+    localStorage.setItem('panda_settings', JSON.stringify(settings));
+}
+function saveGame() {
+    localStorage.setItem('panda_games', JSON.stringify(games));
+}
+
+// 5. Navigation Views
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a] cursor-pointer" onclick="showHome()">
         <h1 class="text-6xl font-black text-green-400">PANDA</h1>
@@ -73,17 +87,20 @@ function showHome() {
             </div>
             <div class="text-3xl font-black" style="color: var(--color-score)">${calculateGrandTotal(g)}</div>
         </div>`).join('');
+
     app.innerHTML = `<div class="p-6 h-full flex flex-col animate-fadeIn">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-4xl font-black tracking-tighter">History</h1>
-            <button onclick="toggleMenu()" class="p-2 bg-black/5 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"></path></svg></button>
+            <button onclick="toggleMenu()" class="p-2 bg-black/5 rounded-xl">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" stroke-linecap="round" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
         </div>
         <div class="flex-1 overflow-y-auto">${gameCards || '<p class="opacity-30 italic text-center py-20">No games found.</p>'}</div>
         <button onclick="startNewGame()" class="w-full bg-green-600 py-5 rounded-3xl font-black text-xl text-white mt-6 shadow-xl">NEW GAME</button>
     </div>`;
 }
 
-// 4. Gameplay Render Engine
+// 6. Gameplay Render Engine
 function renderGame() {
     if (!activeGame) return;
     const roundNum = activeGame.currentRound + 1;
@@ -93,48 +110,304 @@ function renderGame() {
     let prevHtml = '';
     if (activeGame.currentRound > 0) {
         const pr = activeGame.rounds[activeGame.currentRound - 1];
-        prevHtml = `<div class="animate-fadeIn"><div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${(pr.yellow || []).reduce((a,b)=>a+b,0)}</span></div><div class="prev-total-box"><span>Last Round Score</span><span class="text-xl">${calculateRoundTotal(pr)}</span></div></div>`;
+        prevHtml = `<div class="animate-fadeIn"><div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${(pr.yellow || []).reduce((a,b)=>a+b,0)}</span></div><div class="prev-total-box"><span>Last Round Total Score</span><span class="text-xl">${calculateRoundTotal(pr)}</span></div></div>`;
     }
 
     let diceHtml = (roundNum === 1) 
         ? `<div class="animate-fadeIn">${renderDiceRow(diceConfig[0], roundData)}</div><div class="mt-12 text-center expansion-gradient text-5xl font-black uppercase">Expansion Pack<br>Edition</div>`
         : diceConfig.map((d, i) => `<div class="animate-fadeIn" style="animation-delay:${i*0.05}s">${renderDiceRow(d, roundData)}</div>`).join('');
 
+    // Logic to switch between Progress Bar and Gold Sage Row
     let sageBarHtml = '';
     let sageDiceRowHtml = '';
+
     if (roundNum >= 2) {
         if (sageGlobalStatus) {
-            sageDiceRowHtml = `<div onclick="setActiveInput('sage')" id="row-sage" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer bg-yellow-500 text-black mb-3 animate-fadeIn">
-                <div class="flex justify-between items-center"><span class="font-black uppercase tracking-widest text-lg">SAGE</span><span id="sage-sum" class="text-4xl font-black">0</span></div>
-                <div id="sage-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div></div>`;
+            // Show Gold Sage Row
+            sageDiceRowHtml = `
+            <div onclick="setActiveInput('sage')" id="row-sage" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer bg-yellow-500 text-black mb-3 animate-fadeIn">
+                <div class="flex justify-between items-center">
+                    <span class="font-black uppercase tracking-widest text-lg">SAGE</span>
+                    <span id="sage-sum" class="text-4xl font-black">0</span>
+                </div>
+                <div id="sage-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>
+            </div>`;
         } else {
+            // Show Progress Bar
             sageBarHtml = `<div id="sage-container" class="mb-6 p-4 bg-black/5 rounded-3xl border border-[var(--border-ui)] animate-fadeIn">
                 <div class="flex justify-between items-end mb-2"><span class="text-[10px] font-black uppercase tracking-widest opacity-60">Sage Progress</span><span id="sage-status-text" class="text-xs font-black uppercase">0/6 Used</span></div>
-                <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden"><div id="sage-progress-fill" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div></div></div>`;
+                <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden"><div id="sage-progress-fill" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div></div>
+            </div>`;
         }
     }
 
-    app.innerHTML = `<div class="scroll-area" id="game-scroll">
-        <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
-            <button onclick="showHome()" class="text-[10px] font-black uppercase opacity-50 px-3 py-2 rounded-lg bg-black/5">Exit</button>
-            <div class="flex items-center gap-6">
-                <button onclick="changeRound(-1)" class="nav-btn ${roundNum===1?'disabled':''}"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M15 19l-7-7 7-7"></path></svg></button>
-                <div class="text-center"><div class="text-xl font-black uppercase">Round ${roundNum}</div><div id="round-total-display" class="text-5xl font-black">0</div></div>
-                <button onclick="changeRound(1)" class="nav-btn ${roundNum===10?'disabled':''}"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M9 5l7 7-7 7"></path></svg></button>
-            </div><div class="w-10"></div>
+    app.innerHTML = `
+        <div class="scroll-area" id="game-scroll">
+            <div class="sticky top-0 bg-inherit backdrop-blur-md z-50 p-5 border-b border-[var(--border-ui)] flex justify-between items-center">
+                <button onclick="showHome()" class="text-[10px] font-black uppercase opacity-50 px-3 py-2 rounded-lg bg-black/5">Exit</button>
+                <div class="flex items-center gap-6">
+                    <button onclick="changeRound(-1)" class="nav-btn ${roundNum===1?'disabled':''}"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M15 19l-7-7 7-7"></path></svg></button>
+                    <div class="text-center"><div class="text-xl font-black uppercase">Round ${roundNum}</div><div id="round-total-display" class="text-5xl font-black">0</div></div>
+                    <button onclick="changeRound(1)" class="nav-btn ${roundNum===10?'disabled':''}"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M9 5l7 7-7 7"></path></svg></button>
+                </div>
+                <div class="w-10"></div>
+            </div>
+            <div class="p-4 pb-8">${prevHtml}${sageBarHtml}<div class="section-title"><h3>Dice Calculators</h3></div>
+                <div class="space-y-3">
+                    ${diceHtml}
+                    ${sageDiceRowHtml}
+                    <div id="wild-section" class="wild-section-container ${roundNum<2?'hidden':''}">
+                        <div class="wild-counter-inline shadow-sm"><span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span><div class="flex items-center gap-5"><button onclick="adjustWildCount(-1)" class="wild-btn-minus">-</button><span id="wild-count-num" class="font-black text-2xl">${(roundData.wild || []).length}</span><button onclick="adjustWildCount(1)" class="wild-btn-plus">+</button></div></div>
+                        <div id="wild-list-container" class="wild-stack">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
+                    </div>
+                </div>
+                <div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div>
+            </div>
         </div>
-        <div class="p-4 pb-8">${prevHtml}${sageBarHtml}<div class="section-title"><h3>Dice Calculators</h3></div><div class="space-y-3">${diceHtml}${sageDiceRowHtml}
-            <div id="wild-section" class="wild-section-container ${roundNum<2?'hidden':''}">
-                <div class="wild-counter-inline shadow-sm"><span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span><div class="flex items-center gap-5"><button onclick="adjustWildCount(-1)" class="wild-btn-minus">-</button><span id="wild-count-num" class="font-black text-2xl">${(roundData.wild || []).length}</span><button onclick="adjustWildCount(1)" class="wild-btn-plus">+</button></div></div>
-                <div id="wild-list-container" class="wild-stack">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
-            </div></div><div class="grand-total-footer"><span class="text-[10px] font-black uppercase opacity-50 block mb-1">Grand Total</span><span id="grand-total-box" class="text-5xl font-black">0</span></div></div>
-    </div>
-    <div id="keypad-container" class="keypad-area p-4 flex flex-col"><div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div><div class="grid grid-cols-4 gap-2 flex-1">${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button><button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button><button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button></div></div>`;
+        <div id="keypad-container" class="keypad-area p-4 flex flex-col">
+            <div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div>
+            <div class="grid grid-cols-4 gap-2 flex-1">
+                ${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
+                <button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>
+                ${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
+                ${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}
+                <button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button>
+                <button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button>
+                <button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button>
+            </div>
+        </div>`;
     updateAllDisplays();
 }
 
+// 7. Display Updates (No full re-render)
 function updateAllDisplays() {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd) return;
 
+    // Update Sage Progress Bar (if it exists)
     const sageProg = calculateSageProgress(rd);
+    const sText = document.getElementById('sage-status-text');
+    const sFill = document.getElementById('sage-progress-fill');
+    if (sText) {
+        sText.textContent = `${sageProg.count}/6 Used${sageProg.count >= 6 ? ' - SAGE! ✨' : ''}`;
+        sText.className = `text-xs font-black uppercase ${sageProg.count >= 6 ? 'text-yellow-500' : 'text-green-500'}`;
+    }
+    if (sFill) {
+        sFill.style.width = `${sageProg.percentage}%`;
+        sFill.className = `h-full transition-all duration-500 ${sageProg.count >= 6 ? 'bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : 'bg-gradient-to-r from-green-500 to-emerald-400'}`;
+    }
+
+    // Calculate Wild Bonuses
+    const wildBonuses = {};
+    (rd.wild || []).forEach(w => { if(w) wildBonuses[w.target] = (wildBonuses[w.target] || 0) + (w.value || 0); });
+
+    // Update Standard Dice Rows
+    diceConfig.forEach(d => {
+        const vals = rd[d.id] || [];
+        let base = (vals.reduce((a, b) => a + b, 0)) + (wildBonuses[d.id] || 0);
+        let score = base;
+        if (d.id === 'purple') score = base * 2;
+        else if (d.id === 'blue' && rd.blueHasSparkle) score = base * 2;
+        else if (d.id === 'red') score = base * vals.length;
+        
+        const sumEl = document.getElementById(`${d.id}-sum`);
+        if (sumEl) sumEl.textContent = score;
+        const valEl = document.getElementById(`${d.id}-values`);
+        if (valEl) {
+            valEl.innerHTML = vals.map((v, i) => `
+                <span class="inline-flex items-center bg-black/10 px-5 py-3 rounded-2xl text-xl font-black shadow-sm border border-black/5 active:scale-95 transition-transform">
+                    ${v} <button onclick="event.stopPropagation(); removeVal('${d.id}', ${i})" class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg opacity-60 active:bg-red-500 active:text-white transition-colors">×</button>
+                </span>`).join('');
+        }
+    });
+
+    // Update Gold Sage Row (if it exists)
+    const sageVals = rd.sage || [];
+    const sageSumEl = document.getElementById('sage-sum');
+    if(sageSumEl) sageSumEl.textContent = sageVals.reduce((a,b)=>a+b,0);
+    const sageValEl = document.getElementById('sage-values');
+    if(sageValEl) {
+         sageValEl.innerHTML = sageVals.map((v, i) => `
+            <span class="inline-flex items-center bg-black/20 px-5 py-3 rounded-2xl text-xl font-black shadow-sm border border-black/5 active:scale-95 transition-transform">
+                ${v} <button onclick="event.stopPropagation(); removeVal('sage', ${i})" class="ml-4 w-8 h-8 flex items-center justify-center bg-black/20 rounded-full text-lg opacity-60 active:bg-red-500 active:text-white transition-colors">×</button>
+            </span>`).join('');
+    }
+    
+    document.getElementById('round-total-display').textContent = calculateRoundTotal(rd);
+    document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
+}
+
+// 8. User Interaction Handlers
+function setActiveInput(id) {
+    activeInputField = id;
+    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
+    document.querySelectorAll('.wild-card').forEach(c => c.classList.remove('active-input'));
+    const row = document.getElementById(`row-${id}`);
+    if (row) {
+        if (id === 'sage') {
+            // Gold Row Active State (Black bg, Gold text)
+            row.style.backgroundColor = "#000";
+            row.style.color = "#fbbf24";
+        } else {
+            // Standard Dice Row Active State
+            const config = diceConfig.find(d => d.id === id);
+            row.style.backgroundColor = config.color;
+            row.style.color = config.text;
+        }
+    }
+    updateKpDisplay();
+}
+
+function setActiveWildInput(idx) {
+    activeInputField = `wild-${idx}`;
+    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
+    document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
+    updateKpDisplay();
+}
+
+function toggleSparkle() {
+    const rd = activeGame.rounds[activeGame.currentRound];
+    rd.blueHasSparkle = !rd.blueHasSparkle;
+    const btn = document.getElementById('sparkle-btn');
+    if (btn) {
+        btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?';
+        btn.className = `sparkle-btn-full ${rd.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}`;
+    }
+    updateAllDisplays(); saveGame();
+}
+
+function kpInput(v) { keypadValue += v; updateKpDisplay(); }
+function kpClear() { keypadValue = ''; updateKpDisplay(); }
+function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); updateKpDisplay(); }
+function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); }
+
+function kpEnter() {
+    if (!activeInputField || !keypadValue || keypadValue === '-') return;
+    const rd = activeGame.rounds[activeGame.currentRound];
+    if (activeInputField.startsWith('wild-')) {
+        rd.wild[parseInt(activeInputField.split('-')[1])].value = parseFloat(keypadValue);
+    } else {
+        // Handles standard dice AND the new 'sage' row
+        if (!rd[activeInputField]) rd[activeInputField] = [];
+        rd[activeInputField].push(parseFloat(keypadValue));
+    }
+    kpClear(); updateAllDisplays(); saveGame();
+}
+
+function removeVal(id, idx) {
+    activeGame.rounds[activeGame.currentRound][id].splice(idx, 1);
+    updateAllDisplays(); saveGame();
+}
+
+function changeRound(s) {
+    const curIdx = activeGame.currentRound;
+    // Check if Sage was completed THIS round
+    const sageNow = calculateSageProgress(activeGame.rounds[curIdx]).count >= 6;
+    // Check if Sage was completed in any PREVIOUS round
+    const completedPreviously = activeGame.rounds.slice(0, curIdx).some(r => calculateSageProgress(r).count >= 6);
+
+    // Only show popup if moving forward, completed now, and never completed before
+    if (s === 1 && sageNow && !completedPreviously) {
+        showSagePopup();
+    }
+    const n = activeGame.currentRound + s;
+    if (n >= 0 && n < 10) { activeGame.currentRound = n; renderGame(); }
+}
+
+function adjustWildCount(delta) {
+    const rd = activeGame.rounds[activeGame.currentRound];
+    if (!rd.wild) rd.wild = [];
+    if (rd.wild.length + delta >= 0 && rd.wild.length + delta <= 9) {
+        if (delta > 0) rd.wild.push({ value: 0, target: 'purple' });
+        else rd.wild.pop();
+        renderGame(); saveGame();
+    }
+}
+
+function setWildTarget(idx, targetId) {
+    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
+    setActiveWildInput(idx);
+    const card = document.getElementById(`wild-card-${idx}`);
+    if (card) {
+        card.style.borderLeftColor = diceConfig.find(d => d.id === targetId).color;
+        card.querySelectorAll('.wheel-item').forEach((item, i) => item.classList.toggle('selected', diceConfig.filter(d=>d.id!=='yellow')[i].id === targetId));
+    }
+    updateAllDisplays(); saveGame();
+}
+
+// 9. Global Actions & Popups
+function openGameActions(index) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay animate-fadeIn';
+    overlay.id = 'action-modal';
+    overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `<div class="action-popup"><h2 class="text-2xl font-black mb-8">Game #${games.length - index}</h2><div class="flex justify-center gap-10">
+        <button onclick="resumeGame(${index})" class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center text-white"><svg class="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></button>
+        <button onclick="confirmDelete(${index})" class="w-16 h-16 rounded-2xl bg-red-600 flex items-center justify-center text-white"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+    </div></div>`;
+    document.body.appendChild(overlay);
+}
+
+function showSagePopup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/40 backdrop-blur-2xl z-[2000] flex items-center justify-center animate-fadeIn cursor-pointer';
+    overlay.onclick = () => overlay.remove();
+    overlay.innerHTML = `<div class="w-[85%] max-w-[320px] bg-white border-4 border-yellow-500 rounded-[40px] p-8 text-center shadow-2xl">
+        <div class="flex flex-col items-center gap-6">
+            <div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-white ring-4 ring-yellow-200">
+                <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div><h2 class="text-3xl font-black text-yellow-600 tracking-tighter">SAGE QUEST</h2><h3 class="text-xl font-black uppercase text-slate-400">COMPLETE</h3></div>
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Tap anywhere to continue</p>
+        </div>
+    </div>`;
+    document.body.appendChild(overlay);
+}
+
+function confirmDelete(index) {
+    if(confirm("Delete this game?")) {
+        games.splice(index, 1);
+        saveGame();
+        const modal = document.getElementById('action-modal'); if(modal) modal.remove();
+        showHome();
+    }
+}
+
+function toggleMenu() {
+    const ex = document.getElementById('menu-overlay');
+    if (ex) { ex.remove(); return; }
+    const menu = document.createElement('div');
+    menu.id = 'menu-overlay';
+    menu.className = 'modal-overlay justify-end animate-fadeIn';
+    menu.onclick = (e) => { if(e.target === menu) menu.remove(); };
+    menu.innerHTML = `<div class="menu-panel flex flex-col"><h2 class="text-xl font-black uppercase mb-10">Settings</h2><button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 mb-3 ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">Dark Navy</button><button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">Off-White</button><button onclick="clearHistory()" class="mt-auto text-red-600 font-bold p-4 opacity-50 italic">Clear All History</button></div>`;
+    document.body.appendChild(menu);
+}
+
+function clearHistory() { if (confirm("Delete ALL history?")) { games = []; saveGame(); showHome(); } }
+function setTheme(t) { settings.theme = t; applySettings(); showHome(); }
+function resumeGame(i) { activeGame = games[i]; const modal = document.getElementById('action-modal'); if(modal) modal.remove(); renderGame(); }
+function startNewGame() {
+    // Initialize new game with 'sage' array in every round
+    activeGame = { id: Date.now(), date: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), currentRound: 0, rounds: Array(10).fill(null).map(() => ({ yellow: [], purple: [], blue: [], red: [], green: [], clear: [], pink: [], wild: [], sage: [], blueHasSparkle: false })) };
+    games.unshift(activeGame); saveGame(); renderGame();
+}
+
+function renderDiceRow(dice, roundData) {
+    const isBlue = dice.id === 'blue';
+    const sparkle = isBlue ? `<button id="sparkle-btn" onclick="event.stopPropagation(); toggleSparkle()" class="sparkle-btn-full ${roundData.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}">${roundData.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'}</button>` : '';
+    return `<div onclick="setActiveInput('${dice.id}')" id="row-${dice.id}" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer">
+        <div class="flex justify-between items-center"><span class="font-black uppercase tracking-tight">${dice.label}</span><span id="${dice.id}-sum" class="text-3xl font-black">0</span></div>
+        <div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3"></div>${sparkle}</div>`;
+}
+
+function renderWildCardHtml(w, idx) {
+    const color = diceConfig.find(d => d.id === w.target).color;
+    return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${activeInputField==='wild-'+idx?'active-input':''}" style="border-left:8px solid ${color}">
+        <div class="flex justify-between items-start"><span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-3xl font-black wild-val-display">${w.value||0}</span></div>
+        <div class="color-picker-wheel">${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}</div></div>`;
+}
+
+// 10. Initialize App
+applySettings();
+showSplash();
