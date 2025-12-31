@@ -23,7 +23,7 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Navigation & Mode Selection ---
+// --- Navigation & Initialization ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
         <h1 class="text-6xl font-black text-green-400">PANDA</h1>
@@ -88,11 +88,9 @@ function initGame(mode) {
 // --- Logic Helpers ---
 function calculateSageProgress(round) {
     const usedColors = new Set();
-    // Sage excludes itself; check only standard colors
     diceConfig.forEach(d => { if (round[d.id] && round[d.id].length > 0) usedColors.add(d.id); });
     if (round.wild) { round.wild.forEach(w => { if (w.value !== 0) usedColors.add(w.target); }); }
-    const count = usedColors.size;
-    return { count, percentage: Math.min(100, (count / 6) * 100) };
+    return { count: usedColors.size, percentage: Math.min(100, (usedColors.size / 6) * 100) };
 }
 
 function isSageAlreadyCompleteBy(roundIdx) {
@@ -117,7 +115,6 @@ function renderGame() {
         prevRoundHtml = `<div class="animate-fadeIn"><div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${(pr.yellow || []).reduce((a,b)=>a+b,0)}</span></div><div class="prev-total-box"><span>Last Round Total Score</span><span class="text-xl">${calculateRoundTotal(pr)}</span></div></div>`;
     }
 
-    // DICE SECTION
     let diceRowsHtml = "";
     if (roundNum === 1) {
         diceRowsHtml = `<div class="animate-fadeIn">${renderDiceRow(diceConfig[0], roundData)}</div>
@@ -136,7 +133,6 @@ function renderGame() {
         }
     }
 
-    // SAGE PROGRESS UI (Expansion Only)
     let sageSectionHtml = '';
     if (isExpansion && roundNum >= 2) {
         if (sageGlobalStatus) {
@@ -197,7 +193,62 @@ function updateAllDisplays() {
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
 }
 
-// --- Interaction Logic ---
+// --- Interaction Logic (Optimized for No-Scroll Jump) ---
+function toggleSparkle() {
+    const rd = activeGame.rounds[activeGame.currentRound];
+    rd.blueHasSparkle = !rd.blueHasSparkle;
+    const btn = document.getElementById('sparkle-btn');
+    if (btn) {
+        btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?';
+        btn.className = `sparkle-btn-full ${rd.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}`;
+    }
+    updateAllDisplays(); 
+    saveGame();
+}
+
+function adjustWildCount(delta) {
+    const rd = activeGame.rounds[activeGame.currentRound];
+    if (!rd.wild) rd.wild = [];
+    if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
+    if (delta > 0) rd.wild.push({ value: 0, target: 'purple' });
+    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null; }
+    
+    // Local updates to avoid scroll jump
+    const numDisplay = document.getElementById('wild-count-num');
+    if (numDisplay) numDisplay.textContent = rd.wild.length;
+    const container = document.getElementById('wild-list-container');
+    if (container) container.innerHTML = rd.wild.map((w, idx) => renderWildCardHtml(w, idx)).join('');
+    
+    updateAllDisplays(); 
+    saveGame();
+}
+
+function setWildTarget(idx, targetId) {
+    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
+    setActiveWildInput(idx);
+    
+    // Local DOM update for card border and selection
+    const card = document.getElementById(`wild-card-${idx}`);
+    if (card) {
+        const color = diceConfig.find(d => d.id === targetId).color;
+        card.style.borderLeftColor = color;
+        const configFiltered = diceConfig.filter(d => d.id !== 'yellow');
+        card.querySelectorAll('.wheel-item').forEach((dot, i) => {
+            dot.classList.toggle('selected', configFiltered[i].id === targetId);
+        });
+    }
+    updateAllDisplays(); 
+    saveGame();
+}
+
+function setActiveWildInput(idx) {
+    activeInputField = `wild-${idx}`;
+    document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
+    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
+    updateKpDisplay();
+}
+
+// --- Standard Functions ---
 function changeRound(s) { 
     const isExpansion = activeGame.mode === 'expansion';
     if (isExpansion && s === 1) {
@@ -258,7 +309,6 @@ function kpClear() { keypadValue = ''; updateKpDisplay(); }
 function kpToggleNeg() { keypadValue = keypadValue.startsWith('-') ? keypadValue.substring(1) : (keypadValue ? '-' + keypadValue : '-'); updateKpDisplay(); }
 function updateKpDisplay() { const d = document.getElementById('active-input-display'); if (d) d.textContent = keypadValue || (activeInputField ? `Adding to ${activeInputField.toUpperCase()}` : '-'); }
 function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); updateAllDisplays(); saveGame(); }
-function toggleSparkle() { activeGame.rounds[activeGame.currentRound].blueHasSparkle = !activeGame.rounds[activeGame.currentRound].blueHasSparkle; updateAllDisplays(); saveGame(); renderGame(); }
 function openGameActions(index) {
     const overlay = document.createElement('div');
     overlay.id = 'action-modal';
@@ -274,28 +324,9 @@ function showSagePopup() {
     overlay.innerHTML = `<div class="w-[85%] max-w-[320px] bg-white border-4 border-yellow-500 rounded-[40px] p-8 text-center shadow-2xl"><div class="flex flex-col items-center gap-6"><div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-white shadow-xl ring-4 ring-yellow-200"><svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div><div><h2 class="text-3xl font-black text-yellow-600 tracking-tighter mb-1">SAGE QUEST</h2><h3 class="text-xl font-black uppercase text-slate-400">COMPLETE</h3></div><p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Tap anywhere to continue</p></div></div>`;
     document.body.appendChild(overlay);
 }
-function adjustWildCount(delta) {
-    const rd = activeGame.rounds[activeGame.currentRound];
-    if (!rd.wild) rd.wild = [];
-    if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
-    if (delta > 0) rd.wild.push({ value: 0, target: 'purple' });
-    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null; }
-    renderGame(); saveGame();
-}
 function renderWildCardHtml(w, idx) {
     const color = diceConfig.find(d => d.id === w.target).color;
     return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${activeInputField === 'wild-'+idx ? 'active-input' : ''}" style="border-left: 8px solid ${color}"><div class="flex justify-between items-start"><span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-3xl font-black wild-val-display">${w.value || 0}</span></div><div class="color-picker-wheel">${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}</div></div>`;
-}
-function setActiveWildInput(idx) {
-    activeInputField = `wild-${idx}`;
-    document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
-    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
-    updateKpDisplay();
-}
-function setWildTarget(idx, targetId) {
-    activeGame.rounds[activeGame.currentRound].wild[idx].target = targetId;
-    setActiveWildInput(idx);
-    updateAllDisplays(); saveGame(); renderGame();
 }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function toggleMenu() {
