@@ -110,6 +110,20 @@ body.light-theme .prev-total-box {
     border-color: #cbd5e1;
 }
 
+/* --- Sage Quest Completed Badge --- */
+.sage-completed-banner {
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: #eab308;
+    padding: 12px;
+    border-radius: 20px;
+    text-align: center;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+}
+
 /* --- Sage Die Unique Styling --- */
 .dice-row#row-sage {
     background-color: #eab308; /* Gold */
