@@ -196,7 +196,6 @@ function renderGame() {
             </div>`;
     }
 
-    // Sage Banner moved to top and restyled to match info boxes
     let sageSectionHtml = '';
     if (isExpansion && roundNum >= 2) {
         if (sageGlobalStatus) {
@@ -295,15 +294,22 @@ function updateKeypadTheme(bgColor, textColor) {
     });
 }
 
+// FIX: Combined Round Change Logic to prevent blocking
 function changeRound(s) { 
-    const isExpansion = activeGame.mode === 'expansion';
-    if (isExpansion && s === 1) {
+    const n = activeGame.currentRound + s; 
+    if (n < 0 || n >= 10) return;
+
+    // Trigger Popup BEFORE logic update
+    if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
-    const n = activeGame.currentRound + s; 
-    if (n >= 0 && n < 10) { activeGame.currentRound = n; saveGame(); renderGame(); } 
+    
+    // Update State and Render
+    activeGame.currentRound = n; 
+    saveGame(); 
+    renderGame(); 
 }
 
 function adjustWildCount(delta) {
@@ -416,6 +422,13 @@ function toggleMenu() {
     document.body.appendChild(menu);
 }
 function clearHistory() { if (confirm("Delete ALL history?")) { games = []; saveGame(); showHome(); } }
+function showSagePopup() {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/40 backdrop-blur-2xl z-[2000] flex items-center justify-center animate-fadeIn cursor-pointer';
+    overlay.onclick = () => overlay.remove();
+    overlay.innerHTML = `<div class="w-[85%] max-w-[320px] bg-white border-4 border-yellow-500 rounded-[40px] p-8 text-center shadow-2xl"><div class="flex flex-col items-center gap-6"><div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-white shadow-xl ring-4 ring-yellow-200"><svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div><div><h2 class="text-3xl font-black text-yellow-600 tracking-tighter mb-1">SAGE QUEST</h2><h3 class="text-xl font-black uppercase text-slate-400">COMPLETE</h3></div><p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Tap anywhere to continue</p></div></div>`;
+    document.body.appendChild(overlay);
+}
 
 applySettings();
 showSplash();
