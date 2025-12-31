@@ -110,6 +110,19 @@ body.light-theme .prev-total-box {
     border-color: #cbd5e1;
 }
 
+/* --- Sage Die Unique Styling --- */
+.dice-row#row-sage {
+    background-color: #eab308; /* Gold */
+    color: #000;
+    border-left-color: #ca8a04;
+}
+
+/* Specific override for when Sage is selected */
+.dice-row#row-sage.active-sage {
+    background-color: #000 !important;
+    color: #eab308 !important;
+}
+
 /* --- High-Contrast Wild Counter --- */
 .wild-section-container { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-ui); }
 
