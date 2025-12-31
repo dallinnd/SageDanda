@@ -241,6 +241,17 @@ function updateAllDisplays() {
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
 }
 
+// --- Keypad Theme Logic ---
+function updateKeypadTheme(bgColor, textColor) {
+    const keys = document.querySelectorAll('.kp-btn:not(#add-btn)');
+    keys.forEach(k => {
+        k.style.backgroundColor = bgColor;
+        k.style.color = textColor;
+        // Apply a subtle border to keep white keys visible in light mode
+        k.style.border = bgColor === '#ffffff' ? "1px solid rgba(0,0,0,0.1)" : "none";
+    });
+}
+
 // --- Smooth Interaction Logic ---
 function toggleSparkle() {
     const rd = activeGame.rounds[activeGame.currentRound];
@@ -291,6 +302,24 @@ function setActiveWildInput(idx) {
     activeInputField = `wild-${idx}`;
     document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
     document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
+    
+    // Wild keys = White background, Black text
+    updateKeypadTheme("#ffffff", "#000000");
+    updateKpDisplay();
+}
+
+function setActiveInput(id) {
+    activeInputField = id;
+    document.querySelectorAll('.wild-card').forEach(c => c.classList.remove('active-input'));
+    const all = [...diceConfig, sageDiceConfig];
+    const config = all.find(d => d.id === id);
+    
+    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
+    const row = document.getElementById(`row-${id}`);
+    if (row) { row.style.backgroundColor = config.color; row.style.color = config.text; }
+    
+    // Set keypad to the section color (Gold for Sage automatically)
+    updateKeypadTheme(config.color, config.text);
     updateKpDisplay();
 }
 
@@ -310,17 +339,6 @@ function renderDiceRow(dice, roundData) {
     const isBlue = dice.id === 'blue';
     const sparkleBtn = isBlue ? `<button id="sparkle-btn" onclick="event.stopPropagation(); toggleSparkle()" class="sparkle-btn-full ${roundData.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}">${roundData.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?'}</button>` : '';
     return `<div onclick="setActiveInput('${dice.id}')" id="row-${dice.id}" class="dice-row p-5 rounded-2xl border-l-8 border-transparent cursor-pointer"><div class="flex justify-between items-center"><span class="font-black uppercase tracking-tight">${dice.label}</span><span id="${dice.id}-sum" class="text-3xl font-black">0</span></div><div id="${dice.id}-values" class="flex flex-wrap gap-3 mt-3 min-h-[10px]"></div>${sparkleBtn}</div>`;
-}
-
-function setActiveInput(id) {
-    activeInputField = id;
-    document.querySelectorAll('.wild-card').forEach(c => c.classList.remove('active-input'));
-    const all = [...diceConfig, sageDiceConfig];
-    const config = all.find(d => d.id === id);
-    document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
-    const row = document.getElementById(`row-${id}`);
-    if (row) { row.style.backgroundColor = config.color; row.style.color = config.text; }
-    updateKpDisplay();
 }
 
 function kpEnter() {
@@ -371,11 +389,6 @@ function showSagePopup() {
     overlay.onclick = () => overlay.remove();
     overlay.innerHTML = `<div class="w-[85%] max-w-[320px] bg-white border-4 border-yellow-500 rounded-[40px] p-8 text-center shadow-2xl"><div class="flex flex-col items-center gap-6"><div class="w-24 h-24 bg-gradient-to-tr from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-white shadow-xl ring-4 ring-yellow-200"><svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg></div><div><h2 class="text-3xl font-black text-yellow-600 tracking-tighter mb-1">SAGE QUEST</h2><h3 class="text-xl font-black uppercase text-slate-400">COMPLETE</h3></div><p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Tap anywhere to continue</p></div></div>`;
     document.body.appendChild(overlay);
-}
-
-function renderWildCardHtml(w, idx) {
-    const color = diceConfig.find(d => d.id === w.target).color;
-    return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${activeInputField === 'wild-'+idx ? 'active-input' : ''}" style="border-left: 8px solid ${color}"><div class="flex justify-between items-start"><span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-3xl font-black wild-val-display">${w.value || 0}</span></div><div class="color-picker-wheel">${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}</div></div>`;
 }
 
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
