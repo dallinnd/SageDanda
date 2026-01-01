@@ -23,7 +23,7 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Onboarding & Navigation ---
+// --- Navigation & Onboarding ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="checkOnboarding()">
         <h1 class="text-5xl font-black text-green-400 text-center px-6 uppercase tracking-tighter">Panda Royale</h1>
@@ -38,7 +38,9 @@ function checkOnboarding() {
 }
 
 function showOnboarding(step) {
-    // 1. Create the stationary container if it doesn't exist
+    const menu = document.getElementById('menu-overlay');
+    if (menu) menu.remove(); 
+
     let container = document.getElementById('onboarding-container');
     if (!container) {
         container = document.createElement('div');
@@ -47,11 +49,8 @@ function showOnboarding(step) {
     }
 
     const currentCard = container.querySelector('.onboarding-card');
-    
     if (currentCard && step === 2) {
-        // Slide the old card out
         currentCard.classList.add('slide-out-left');
-        // Wait for slide-out to finish, then render new card
         setTimeout(() => renderOnboardingCard(step, container), 300);
     } else {
         renderOnboardingCard(step, container);
@@ -59,33 +58,30 @@ function showOnboarding(step) {
 }
 
 function renderOnboardingCard(step, container) {
-    // Clear previous card inside the container
     container.innerHTML = '';
-
     const card = document.createElement('div');
     card.className = 'onboarding-card slide-in-right text-white';
 
-    let content = '';
     if (step === 1) {
-        content = `
+        card.innerHTML = `
             <div class="flex justify-between items-center mb-10">
                 <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Step 1 of 2</span>
-                <button onclick="showOnboarding(2)" class="bg-blue-600 px-4 py-1.5 rounded-full font-black uppercase text-xs">Next</button>
+                <button onclick="showOnboarding(2)" class="bg-blue-600 px-4 py-1.5 rounded-full font-black uppercase text-xs shadow-lg">Next</button>
             </div>
             <div class="flex-1 flex flex-col justify-center">
                 <h2 class="text-4xl font-black mb-8 tracking-tighter">Master the Menu</h2>
                 <div class="space-y-6 text-slate-300 font-medium leading-snug">
                     <p><strong class="text-white">The Menu Icon:</strong> Tap the top-right icon in History to find Themes, Instructions, and "Clear History".</p>
-                    <p><strong class="text-white">Game Modes:</strong> Choose <span class="text-green-400">Normal</span> or <span class="text-purple-400">Expansion</span> when starting a new game.</p>
-                    <p><strong class="text-white">Management:</strong> Tap any saved game to <span class="text-blue-400">Resume</span> playing or <span class="text-red-400">Delete</span> it.</p>
+                    <p><strong class="text-white">Game Modes:</strong> Choose <span class="text-green-400">Normal</span> or <span class="text-purple-400">Expansion</span> mode when starting a new game.</p>
+                    <p><strong class="text-white">Management:</strong> Tap any saved game to <span class="text-blue-400">Resume</span> playing or <span class="text-red-400">Delete</span> it permanently.</p>
                 </div>
             </div>
             <button onclick="finishOnboarding()" class="mt-10 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest">Skip Instructions</button>`;
     } else {
-        content = `
+        card.innerHTML = `
             <div class="flex justify-between items-center mb-10">
                 <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Step 2 of 2</span>
-                <button onclick="finishOnboarding()" class="bg-green-600 px-4 py-1.5 rounded-full font-black uppercase text-xs">Done</button>
+                <button onclick="finishOnboarding()" class="bg-green-600 px-4 py-1.5 rounded-full font-black uppercase text-xs shadow-lg">Let's Play</button>
             </div>
             <div class="flex-1 flex flex-col justify-center">
                 <h2 class="text-4xl font-black mb-8 tracking-tighter">How to Navigate Your Game</h2>
@@ -97,8 +93,6 @@ function renderOnboardingCard(step, container) {
             </div>
             <button onclick="finishOnboarding()" class="mt-10 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest text-white">Start Playing</button>`;
     }
-
-    card.innerHTML = content;
     container.appendChild(card);
 }
 
@@ -164,10 +158,10 @@ function openGameActions(index) {
 
 function resumeGame(i) {
     activeGame = games[i];
-    const modal = document.getElementById('action-modal');
-    if (modal) modal.remove();
+    const m = document.getElementById('action-modal');
+    if (m) m.remove();
     renderGame();
-    setActiveInput('yellow'); // AUTO-SELECT YELLOW ON RESUME
+    setActiveInput('yellow'); 
 }
 
 function confirmDelete(index) {
@@ -209,7 +203,7 @@ function initGame(mode) {
     games.unshift(activeGame); 
     saveGame(); 
     renderGame();
-    setActiveInput('yellow'); // AUTO-SELECT YELLOW ON NEW GAME
+    setActiveInput('yellow');
 }
 
 // --- Logic Helpers ---
@@ -377,15 +371,12 @@ function updateKeypadTheme(bgColor, textColor) {
 function changeRound(s) { 
     const n = activeGame.currentRound + s; 
     if (n < 0 || n >= 10) return;
-    
-    setActiveInput('yellow'); // RESET FOCUS TO YELLOW ON CHANGE
-
+    setActiveInput('yellow'); 
     if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
-    
     activeGame.currentRound = n; saveGame(); renderGame(); 
 }
 
@@ -487,27 +478,46 @@ function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].spl
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function toggleMenu() {
-    const ex = document.getElementById('menu-overlay');
-    if (ex) { ex.remove(); return; }
+    const existing = document.getElementById('menu-overlay');
+    if (existing) { existing.remove(); return; }
+    
     const menu = document.createElement('div');
     menu.id = 'menu-overlay';
-    menu.className = 'modal-overlay justify-end animate-fadeIn';
-    menu.onclick = (e) => { if(e.target === menu) menu.remove(); };
+    menu.className = 'fixed inset-0 z-[4000] bg-black/40 backdrop-blur-md flex justify-end animate-fadeIn';
+    menu.onclick = (e) => { if (e.target === menu) menu.remove(); };
+
     menu.innerHTML = `
-        <div class="menu-panel flex flex-col">
-            <h2 class="text-xl font-black uppercase mb-8">Settings</h2>
-            <div class="space-y-3">
-                <button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">Dark Navy</button>
-                <button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">Off-White</button>
+        <div class="menu-panel w-72 h-full bg-[var(--bg-main)] border-l border-[var(--border-ui)] p-8 flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+            <h2 class="text-xl font-black uppercase mb-8 tracking-tight">Settings</h2>
+            <div class="space-y-4">
+                <button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 transition-all ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">
+                    <span class="font-bold text-sm">Dark Navy</span>
+                </button>
+                <button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 transition-all ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">
+                    <span class="font-bold text-sm">Off-White</span>
+                </button>
             </div>
-            <div class="mt-8 pt-8 border-t border-black/5 space-y-2">
-                <button onclick="showOnboarding(1)" class="w-full text-left p-4 bg-blue-500/10 text-blue-500 rounded-2xl font-bold">Replay Instructions</button>
-                <button onclick="clearHistory()" class="w-full text-left p-4 text-red-600 font-bold opacity-50 italic">Clear All History</button>
+            <div class="mt-auto space-y-3">
+                <button onclick="showOnboarding(1)" class="w-full p-4 bg-blue-600/10 text-blue-500 rounded-2xl font-black text-xs uppercase tracking-widest">
+                    Replay Instructions
+                </button>
+                <a href="https://dallinnd.github.io/DandaDoyale/privacy.html" target="_blank" onclick="document.getElementById('menu-overlay').remove()" class="w-full p-4 bg-black/5 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest block text-center no-underline">
+                    Privacy Policy
+                </a>
+                <button onclick="clearHistory()" class="w-full p-4 text-red-500 font-bold text-xs italic opacity-60 hover:opacity-100 transition-opacity">
+                    Clear All History
+                </button>
             </div>
         </div>`;
     document.body.appendChild(menu);
 }
-function clearHistory() { if (confirm("Delete ALL history?")) { games = []; saveGame(); showHome(); } }
+function clearHistory() {
+    if (confirm("Delete ALL history?")) {
+        const m = document.getElementById('menu-overlay');
+        if (m) m.remove();
+        games = []; saveGame(); showHome();
+    }
+}
 function showSagePopup() {
     const overlay = document.createElement('div');
     overlay.className = 'fixed inset-0 bg-black/40 backdrop-blur-2xl z-[2000] flex items-center justify-center animate-fadeIn cursor-pointer';
