@@ -186,36 +186,39 @@ function renderGame() {
         ? `<button onclick="showResults()" class="px-4 py-2 bg-green-600 text-white text-[10px] font-black uppercase rounded-lg shadow-lg">Results</button>`
         : `<button onclick="changeRound(1)" class="nav-btn">${rightChevron}</button>`;
 
-    let prevRoundHtml = '';
+    // --- Review Section (Top) ---
+    let reviewSectionHtml = '';
     if (activeGame.currentRound > 0) {
         const pr = activeGame.rounds[activeGame.currentRound - 1];
-        prevRoundHtml = `
+        reviewSectionHtml += `
             <div class="animate-fadeIn">
                 <div class="prev-round-box"><span>Prev Round Yellow Total</span><span class="text-xl">${(pr.yellow || []).reduce((a,b)=>a+b,0)}</span></div>
                 <div class="prev-total-box"><span>Last Round Total Score</span><span class="text-xl">${calculateRoundTotal(pr)}</span></div>
             </div>`;
     }
 
-    let sageSectionHtml = '';
-    if (isExpansion && roundNum >= 2) {
-        if (sageGlobalStatus) {
-            sageSectionHtml = `
-                <div class="prev-round-box bg-yellow-500 text-black border-none mb-3 py-3 animate-fadeIn flex justify-between items-center shadow-md">
-                    <span class="text-[10px] font-black uppercase tracking-widest">Sage Quest</span>
-                    <span class="text-xs font-black tracking-tighter italic decoration-black underline"> COMPLETE ✓ </span>
-                </div>`;
-        } else {
-            sageSectionHtml = `
-                <div id="sage-container" class="mb-6 p-4 bg-black/5 rounded-3xl border border-[var(--border-ui)] animate-fadeIn">
-                    <div class="flex justify-between items-end mb-2">
-                        <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Sage Progress</span>
-                        <span id="sage-status-text" class="text-xs font-black uppercase">0/6 Used</span>
-                    </div>
-                    <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden">
-                        <div id="sage-progress-fill" class="h-full transition-all duration-500" style="width: 0%"></div>
-                    </div>
-                </div>`;
-        }
+    // Move Gold Box to Review Section if quest is complete
+    if (isExpansion && roundNum >= 2 && sageGlobalStatus) {
+        reviewSectionHtml += `
+            <div class="prev-round-box bg-yellow-500 text-black border-none mb-3 py-3 animate-fadeIn flex justify-between items-center shadow-md">
+                <span class="text-[10px] font-black uppercase tracking-widest">Sage Quest</span>
+                <span class="text-xs font-black tracking-tighter italic decoration-black underline"> COMPLETE ✓ </span>
+            </div>`;
+    }
+
+    // --- Progress Section (Middle/Bottom) ---
+    let progressSectionHtml = '';
+    if (isExpansion && roundNum >= 2 && !sageGlobalStatus) {
+        progressSectionHtml = `
+            <div id="sage-container" class="mt-8 mb-4 p-4 bg-black/5 rounded-3xl border border-[var(--border-ui)] animate-fadeIn">
+                <div class="flex justify-between items-end mb-2">
+                    <span class="text-[10px] font-black uppercase tracking-widest opacity-60">Sage Progress</span>
+                    <span id="sage-status-text" class="text-xs font-black uppercase">0/6 Used</span>
+                </div>
+                <div class="h-4 w-full bg-black/10 rounded-full overflow-hidden">
+                    <div id="sage-progress-fill" class="h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>`;
     }
 
     let diceRowsHtml = (roundNum === 1) 
@@ -232,10 +235,11 @@ function renderGame() {
             <div class="flex items-center gap-6"><button onclick="changeRound(-1)" class="nav-btn ${roundNum === 1 ? 'disabled' : ''}">${leftChevron}</button><div class="text-center"><div class="text-xl font-black uppercase">Round ${roundNum}</div><div id="round-total-display" class="text-5xl font-black">0</div></div>${rightAction}</div><div class="w-10"></div>
         </div>
         <div class="p-4 pb-8">
-            ${prevRoundHtml}
-            ${sageSectionHtml}
+            ${reviewSectionHtml}
             <div class="section-title animate-fadeIn"><h3>Dice Calculators</h3></div>
-            <div class="space-y-3">${diceRowsHtml}
+            <div class="space-y-3">
+                ${diceRowsHtml}
+                ${progressSectionHtml}
                 <div id="wild-section" class="wild-section-container animate-fadeIn ${(!isExpansion || roundNum < 2) ? 'hidden' : ''}">
                     <div class="wild-counter-inline shadow-sm"><span class="text-[10px] font-black uppercase opacity-60">Wild Dice Qty</span><div class="flex items-center gap-5"><button onclick="adjustWildCount(-1)" class="wild-btn-minus">-</button><span id="wild-count-num" class="font-black text-2xl">${(roundData.wild || []).length}</span><button onclick="adjustWildCount(1)" class="wild-btn-plus">+</button></div></div>
                     <div class="wild-stack" id="wild-list-container">${(roundData.wild || []).map((w, idx) => renderWildCardHtml(w, idx)).join('')}</div>
@@ -309,7 +313,6 @@ function changeRound(s) {
     renderGame(); 
 }
 
-// FEATURE 2: Added Selection logic to increment
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
@@ -317,8 +320,7 @@ function adjustWildCount(delta) {
     
     if (delta > 0) {
         rd.wild.push({ value: 0, target: 'purple' });
-        // Selection Logic Added: Select the first wild die automatically
-        setActiveWildInput(0);
+        setActiveWildInput(0); // Focus first wild on increment
     } else {
         rd.wild.pop();
         if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null;
@@ -335,17 +337,13 @@ function adjustWildCount(delta) {
 function toggleSparkle() {
     const rd = activeGame.rounds[activeGame.currentRound];
     rd.blueHasSparkle = !rd.blueHasSparkle;
-    
-    // Feature 3: Auto-select the Blue section when Sparkle is toggled
-    setActiveInput('blue');
-    
+    setActiveInput('blue'); // Focus blue section on sparkle toggle
     const btn = document.getElementById('sparkle-btn');
     if (btn) {
         btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?';
         btn.className = `sparkle-btn-full ${rd.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}`;
     }
-    updateAllDisplays(); 
-    saveGame();
+    updateAllDisplays(); saveGame();
 }
 
 function setWildTarget(idx, targetId) {
@@ -419,16 +417,12 @@ function kpEnter() {
     else rd[activeInputField].push(parseFloat(keypadValue));
     kpClear(); updateAllDisplays(); saveGame();
 }
-
-// FEATURE 1: Added selection logic to value removal
 function removeVal(id, idx) { 
     activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); 
-    // Selection Logic Added: Focus the category when a value is deleted
-    setActiveInput(id);
+    setActiveInput(id); // Focus category on value removal
     updateAllDisplays(); 
     saveGame(); 
 }
-
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function toggleMenu() {
