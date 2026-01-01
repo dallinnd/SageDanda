@@ -1,33 +1,25 @@
 {
+  "short_name": "Panda Royale",
   "name": "Panda Royale Calculator",
-  "short_name": "Panda Calc",
-  "description": "A professional score calculator for Panda Royale.",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "orientation": "portrait",
+  "description": "Professional score tracking for Panda Royale with Wild Dice logic.",
   "icons": [
     {
       "src": "icon-192.png",
-      "sizes": "192x192",
       "type": "image/png",
+      "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
       "src": "icon-512.png",
-      "sizes": "512x512",
       "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any"
     }
   ],
-  "screenshots": [
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Panda Royale Gameplay"
-    }
-  ]
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "scope": "./",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary"
 }
