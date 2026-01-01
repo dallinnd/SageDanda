@@ -127,6 +127,12 @@ body.light-theme .prev-total-box { background-color: #e2e8f0; color: #0f172a; bo
     display: flex; flex-direction: column; gap: 12px;
 }
 .wild-card.active-input { background-color: #000 !important; color: #fff !important; border-color: #16a34a; }
+.wild-stack { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; /* This provides the cushion between wild dice cards */
+    margin-top: 1rem;
+}
 
 .color-picker-wheel { display: flex; justify-content: center; gap: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05); }
 .wheel-item { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #ddd; }
