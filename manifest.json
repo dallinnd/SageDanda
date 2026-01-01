@@ -1,8 +1,7 @@
-Web App Manifest (manifest.json)
-```
 {
   "name": "Panda Royale Calculator",
   "short_name": "Panda Calc",
+  "description": "A professional score calculator for Panda Royale.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -15,12 +14,20 @@ Web App Manifest (manifest.json)
       "type": "image/png",
       "purpose": "any maskable"
     },
-
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Panda Royale Gameplay"
     }
   ]
 }
-```
