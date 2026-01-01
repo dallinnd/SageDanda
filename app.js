@@ -23,10 +23,10 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Onboarding & Navigation ---
+// --- Navigation & Onboarding ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="checkOnboarding()">
-        <h1 class="text-5xl font-black text-green-400 text-center px-6 uppercase">Panda Royale</h1>
+        <h1 class="text-5xl font-black text-green-400 text-center px-6 uppercase tracking-tighter">Panda Royale</h1>
         <h2 class="text-xl font-bold text-slate-500 tracking-[0.3em] uppercase mt-2">Calculator</h2>
         <p class="mt-12 text-slate-600 animate-pulse font-bold text-xs uppercase">Tap to Enter</p>
     </div>`;
@@ -34,68 +34,68 @@ function showSplash() {
 
 function checkOnboarding() {
     const complete = localStorage.getItem('panda_onboarding_complete');
-    if (!complete) {
-        showOnboarding(1);
-    } else {
-        showHome();
-    }
+    if (!complete) { showOnboarding(1); } else { showHome(); }
 }
 
 function showOnboarding(step) {
+    const existing = document.getElementById('onboarding-overlay');
+    if (existing && step === 2) {
+        existing.classList.add('slide-out-left');
+        setTimeout(() => renderOnboardingCard(step), 300);
+    } else {
+        renderOnboardingCard(step);
+    }
+}
+
+function renderOnboardingCard(step) {
+    const existing = document.getElementById('onboarding-overlay');
+    if (existing) existing.remove();
+
     const overlay = document.createElement('div');
     overlay.id = 'onboarding-overlay';
-    overlay.className = 'fixed inset-0 z-[3000] bg-[#0f172a] flex flex-col p-8 animate-fadeIn text-white';
+    overlay.className = 'fixed inset-0 z-[3000] bg-[#0f172a] flex flex-col p-8 slide-in-right text-white';
 
     let content = '';
     if (step === 1) {
         content = `
-            <div class="flex justify-between items-center mb-12">
+            <div class="flex justify-between items-center mb-10">
                 <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Step 1 of 2</span>
-                <button onclick="showOnboarding(2)" class="text-blue-400 font-black uppercase text-sm">Next</button>
+                <button onclick="showOnboarding(2)" class="bg-blue-600 px-4 py-1.5 rounded-full font-black uppercase text-xs">Next</button>
             </div>
-            <div class="flex-1 flex flex-col justify-center text-center">
-                <div class="w-20 h-20 bg-blue-500/20 rounded-3xl flex items-center justify-center self-center mb-8 border border-blue-500/30">
-                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
-                </div>
-                <h2 class="text-3xl font-black mb-4">Main Menu</h2>
-                <div class="space-y-6 text-slate-400 font-medium leading-relaxed">
-                    <p><strong class="text-white">Themes:</strong> Tap the top-right icon in History to find Themes, Instructions, and "Clear History".</p>
+            <div class="flex-1 flex flex-col justify-center">
+                <h2 class="text-4xl font-black mb-8 tracking-tighter">Master the Menu</h2>
+                <div class="space-y-6 text-slate-300 font-medium leading-snug">
+                    <p><strong class="text-white">The Menu Icon:</strong> Tap the top-right icon in History to change <span class="text-blue-400">Themes</span>, replay instructions, or wipe your <span class="text-red-400">History</span>.</p>
                     <p><strong class="text-white">Game Modes:</strong> Choose <span class="text-green-400">Normal</span> or <span class="text-purple-400">Expansion</span> when starting a new game.</p>
-                    <p><strong class="text-white">Management:</strong> Tap a saved game to <span class="text-blue-400">Resume</span> playing or <span class="text-red-400">Delete</span> it.</p>
+                    <p><strong class="text-white">Management:</strong> Tap any saved game to <span class="text-blue-400">Resume</span> playing or <span class="text-red-400">Delete</span> it.</p>
                 </div>
             </div>
-            <button onclick="finishOnboarding()" class="mt-12 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest">Skip Instructions</button>`;
+            <button onclick="finishOnboarding()" class="mt-10 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest">Skip Instructions</button>`;
     } else {
         content = `
-            <div class="flex justify-between items-center mb-12">
+            <div class="flex justify-between items-center mb-10">
                 <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Step 2 of 2</span>
-                <button onclick="finishOnboarding()" class="text-green-400 font-black uppercase text-sm">Done</button>
+                <button onclick="finishOnboarding()" class="bg-green-600 px-4 py-1.5 rounded-full font-black uppercase text-xs">Done</button>
             </div>
-            <div class="flex-1 flex flex-col justify-center text-center">
-                <div class="w-20 h-20 bg-purple-500/20 rounded-3xl flex items-center justify-center self-center mb-8 border border-purple-500/30">
-                    <svg class="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                </div>
-                <h2 class="text-3xl font-black mb-4">Gameplay Tips</h2>
-                <div class="space-y-6 text-slate-400 font-medium leading-relaxed text-sm">
-                    <p><strong class="text-white">Input:</strong> Tap any color die section to select it for the numpad. The calculator auto-selects for you as you play!</p>
-                    <p><strong class="text-white">Navigation:</strong> Use the <strong class="text-white">Arrows</strong> at the top to move between rounds 1 through 10.</p>
-                    <p><strong class="text-white">Expansion Features:</strong> Try the <span class="text-yellow-400">Sage Quest</span> (fill the meter by using different colors) and <span class="text-red-400">Wild Dice</span> for big point boosts!</p>
+            <div class="flex-1 flex flex-col justify-center">
+                <h2 class="text-4xl font-black mb-8 tracking-tighter">How to Navigate Your Game</h2>
+                <div class="space-y-6 text-slate-300 font-medium leading-snug text-sm">
+                    <p><strong class="text-white">Visual Feedback:</strong> When a dice color is selected, watch the section background and numpad keys change to match!</p>
+                    <p><strong class="text-white">Round Control:</strong> Use the <strong class="text-white">Arrows</strong> at the top to move between Rounds 1-10.</p>
+                    <p><strong class="text-white">Expansion Features:</strong> With sage quests, rerolls, and wild dice, this is a new fun way to add a spin to the already fun Panda Royale Game!</p>
                 </div>
             </div>
-            <button onclick="finishOnboarding()" class="mt-12 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest">Start Playing</button>`;
+            <button onclick="finishOnboarding()" class="mt-10 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest text-white">Start Playing</button>`;
     }
 
     overlay.innerHTML = content;
-    const existing = document.getElementById('onboarding-overlay');
-    if (existing) existing.remove();
     document.body.appendChild(overlay);
 }
 
 function finishOnboarding() {
     localStorage.setItem('panda_onboarding_complete', 'true');
-    const overlay = document.getElementById('onboarding-overlay');
-    if (overlay) overlay.remove();
-    showHome();
+    const o = document.getElementById('onboarding-overlay');
+    if (o) o.remove(); showHome();
 }
 
 function showHome() {
@@ -250,7 +250,6 @@ function renderGame() {
         ? `<button onclick="showResults()" class="px-4 py-2 bg-green-600 text-white text-[10px] font-black uppercase rounded-lg shadow-lg">Results</button>`
         : `<button onclick="changeRound(1)" class="nav-btn">${rightChevron}</button>`;
 
-    // --- Review Section (Top) ---
     let reviewSectionHtml = '';
     if (activeGame.currentRound > 0) {
         const pr = activeGame.rounds[activeGame.currentRound - 1];
@@ -269,7 +268,6 @@ function renderGame() {
             </div>`;
     }
 
-    // --- Progress Section (Below Dice) ---
     let progressSectionHtml = '';
     if (isExpansion && roundNum >= 2 && !sageGlobalStatus) {
         progressSectionHtml = `
@@ -312,9 +310,7 @@ function renderGame() {
     </div>
     <div id="keypad-container" class="keypad-area p-4 flex flex-col"><div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div><div class="grid grid-cols-4 gap-2 flex-1">${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button><button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button><button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button></div></div>`;
     
-    // FEATURE: Always auto-select yellow if no specific input is active
     if (!activeInputField) { setActiveInput('yellow'); }
-    
     updateAllDisplays();
 }
 
@@ -368,18 +364,13 @@ function updateKeypadTheme(bgColor, textColor) {
 function changeRound(s) { 
     const n = activeGame.currentRound + s; 
     if (n < 0 || n >= 10) return;
-    
-    // FEATURE: Reset selection to yellow when changing rounds
     activeInputField = 'yellow';
-
     if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
-    
-    activeGame.currentRound = n; 
-    saveGame(); renderGame(); 
+    activeGame.currentRound = n; saveGame(); renderGame(); 
 }
 
 function adjustWildCount(delta) {
