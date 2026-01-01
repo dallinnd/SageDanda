@@ -38,22 +38,32 @@ function checkOnboarding() {
 }
 
 function showOnboarding(step) {
-    const existing = document.getElementById('onboarding-overlay');
-    if (existing && step === 2) {
-        existing.classList.add('slide-out-left');
-        setTimeout(() => renderOnboardingCard(step), 300);
+    // 1. Create the stationary container if it doesn't exist
+    let container = document.getElementById('onboarding-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'onboarding-container';
+        document.body.appendChild(container);
+    }
+
+    const currentCard = container.querySelector('.onboarding-card');
+    
+    if (currentCard && step === 2) {
+        // Slide the old card out
+        currentCard.classList.add('slide-out-left');
+        // Wait for slide-out to finish, then render new card
+        setTimeout(() => renderOnboardingCard(step, container), 300);
     } else {
-        renderOnboardingCard(step);
+        renderOnboardingCard(step, container);
     }
 }
 
-function renderOnboardingCard(step) {
-    const existing = document.getElementById('onboarding-overlay');
-    if (existing) existing.remove();
+function renderOnboardingCard(step, container) {
+    // Clear previous card inside the container
+    container.innerHTML = '';
 
-    const overlay = document.createElement('div');
-    overlay.id = 'onboarding-overlay';
-    overlay.className = 'fixed inset-0 z-[3000] bg-[#0f172a] flex flex-col p-8 slide-in-right text-white';
+    const card = document.createElement('div');
+    card.className = 'onboarding-card slide-in-right text-white';
 
     let content = '';
     if (step === 1) {
@@ -88,14 +98,15 @@ function renderOnboardingCard(step) {
             <button onclick="finishOnboarding()" class="mt-10 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest text-white">Start Playing</button>`;
     }
 
-    overlay.innerHTML = content;
-    document.body.appendChild(overlay);
+    card.innerHTML = content;
+    container.appendChild(card);
 }
 
 function finishOnboarding() {
     localStorage.setItem('panda_onboarding_complete', 'true');
-    const o = document.getElementById('onboarding-overlay');
-    if (o) o.remove(); showHome();
+    const container = document.getElementById('onboarding-container');
+    if (container) container.remove();
+    showHome();
 }
 
 function showHome() {
