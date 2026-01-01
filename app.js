@@ -23,7 +23,7 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Navigation & Onboarding ---
+// --- Onboarding & Navigation ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="checkOnboarding()">
         <h1 class="text-5xl font-black text-green-400 text-center px-6 uppercase tracking-tighter">Panda Royale</h1>
@@ -65,7 +65,7 @@ function renderOnboardingCard(step) {
             <div class="flex-1 flex flex-col justify-center">
                 <h2 class="text-4xl font-black mb-8 tracking-tighter">Master the Menu</h2>
                 <div class="space-y-6 text-slate-300 font-medium leading-snug">
-                    <p><strong class="text-white">The Menu Icon:</strong> Tap the top-right icon in History to change <span class="text-blue-400">Themes</span>, replay instructions, or wipe your <span class="text-red-400">History</span>.</p>
+                    <p><strong class="text-white">The Menu Icon:</strong> Tap the top-right icon in History to find Themes, Instructions, and "Clear History".</p>
                     <p><strong class="text-white">Game Modes:</strong> Choose <span class="text-green-400">Normal</span> or <span class="text-purple-400">Expansion</span> when starting a new game.</p>
                     <p><strong class="text-white">Management:</strong> Tap any saved game to <span class="text-blue-400">Resume</span> playing or <span class="text-red-400">Delete</span> it.</p>
                 </div>
@@ -156,6 +156,7 @@ function resumeGame(i) {
     const modal = document.getElementById('action-modal');
     if (modal) modal.remove();
     renderGame();
+    setActiveInput('yellow'); // AUTO-SELECT YELLOW ON RESUME
 }
 
 function confirmDelete(index) {
@@ -196,7 +197,8 @@ function initGame(mode) {
     }; 
     games.unshift(activeGame); 
     saveGame(); 
-    renderGame(); 
+    renderGame();
+    setActiveInput('yellow'); // AUTO-SELECT YELLOW ON NEW GAME
 }
 
 // --- Logic Helpers ---
@@ -364,12 +366,15 @@ function updateKeypadTheme(bgColor, textColor) {
 function changeRound(s) { 
     const n = activeGame.currentRound + s; 
     if (n < 0 || n >= 10) return;
-    activeInputField = 'yellow';
+    
+    setActiveInput('yellow'); // RESET FOCUS TO YELLOW ON CHANGE
+
     if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
+    
     activeGame.currentRound = n; saveGame(); renderGame(); 
 }
 
@@ -378,7 +383,7 @@ function adjustWildCount(delta) {
     if (!rd.wild) rd.wild = [];
     if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
     if (delta > 0) { rd.wild.push({ value: 0, target: 'purple' }); setActiveWildInput(0); }
-    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = 'yellow'; }
+    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) setActiveInput('yellow'); }
     saveGame();
     const container = document.getElementById('wild-list-container');
     if (container) container.innerHTML = rd.wild.map((w, idx) => renderWildCardHtml(w, idx)).join('');
