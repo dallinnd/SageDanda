@@ -335,12 +335,17 @@ function adjustWildCount(delta) {
 function toggleSparkle() {
     const rd = activeGame.rounds[activeGame.currentRound];
     rd.blueHasSparkle = !rd.blueHasSparkle;
+    
+    // Feature 3: Auto-select the Blue section when Sparkle is toggled
+    setActiveInput('blue');
+    
     const btn = document.getElementById('sparkle-btn');
     if (btn) {
         btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?';
         btn.className = `sparkle-btn-full ${rd.blueHasSparkle ? 'sparkle-on' : 'sparkle-off'}`;
     }
-    updateAllDisplays(); saveGame();
+    updateAllDisplays(); 
+    saveGame();
 }
 
 function setWildTarget(idx, targetId) {
