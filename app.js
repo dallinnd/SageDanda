@@ -202,7 +202,7 @@ function renderGame() {
             sageSectionHtml = `
                 <div class="prev-round-box bg-yellow-500 text-black border-none mb-3 py-3 animate-fadeIn flex justify-between items-center shadow-md">
                     <span class="text-[10px] font-black uppercase tracking-widest">Sage Quest</span>
-                    <span class="text-xs font-black tracking-tighter italic decoration-black underline">★ COMPLETE ★</span>
+                    <span class="text-xs font-black tracking-tighter italic decoration-black underline"> COMPLETE ✓ </span>
                 </div>`;
         } else {
             sageSectionHtml = `
@@ -294,30 +294,36 @@ function updateKeypadTheme(bgColor, textColor) {
     });
 }
 
-// FIX: Combined Round Change Logic to prevent blocking
 function changeRound(s) { 
     const n = activeGame.currentRound + s; 
     if (n < 0 || n >= 10) return;
 
-    // Trigger Popup BEFORE logic update
     if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
     
-    // Update State and Render
     activeGame.currentRound = n; 
     saveGame(); 
     renderGame(); 
 }
 
+// FEATURE 2: Added Selection logic to increment
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
     if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
-    if (delta > 0) rd.wild.push({ value: 0, target: 'purple' });
-    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null; }
+    
+    if (delta > 0) {
+        rd.wild.push({ value: 0, target: 'purple' });
+        // Selection Logic Added: Select the first wild die automatically
+        setActiveWildInput(0);
+    } else {
+        rd.wild.pop();
+        if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null;
+    }
+    
     saveGame();
     const container = document.getElementById('wild-list-container');
     const countNum = document.getElementById('wild-count-num');
@@ -408,7 +414,16 @@ function kpEnter() {
     else rd[activeInputField].push(parseFloat(keypadValue));
     kpClear(); updateAllDisplays(); saveGame();
 }
-function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); updateAllDisplays(); saveGame(); }
+
+// FEATURE 1: Added selection logic to value removal
+function removeVal(id, idx) { 
+    activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); 
+    // Selection Logic Added: Focus the category when a value is deleted
+    setActiveInput(id);
+    updateAllDisplays(); 
+    saveGame(); 
+}
+
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function toggleMenu() {
