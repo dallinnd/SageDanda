@@ -312,7 +312,9 @@ function renderGame() {
     </div>
     <div id="keypad-container" class="keypad-area p-4 flex flex-col"><div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div><div class="grid grid-cols-4 gap-2 flex-1">${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button><button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button><button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button></div></div>`;
     
-    if (roundNum === 1 && !activeInputField) { setActiveInput('yellow'); }
+    // FEATURE: Always auto-select yellow if no specific input is active
+    if (!activeInputField) { setActiveInput('yellow'); }
+    
     updateAllDisplays();
 }
 
@@ -366,11 +368,16 @@ function updateKeypadTheme(bgColor, textColor) {
 function changeRound(s) { 
     const n = activeGame.currentRound + s; 
     if (n < 0 || n >= 10) return;
+    
+    // FEATURE: Reset selection to yellow when changing rounds
+    activeInputField = 'yellow';
+
     if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
+    
     activeGame.currentRound = n; 
     saveGame(); renderGame(); 
 }
@@ -380,7 +387,7 @@ function adjustWildCount(delta) {
     if (!rd.wild) rd.wild = [];
     if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
     if (delta > 0) { rd.wild.push({ value: 0, target: 'purple' }); setActiveWildInput(0); }
-    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null; }
+    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = 'yellow'; }
     saveGame();
     const container = document.getElementById('wild-list-container');
     if (container) container.innerHTML = rd.wild.map((w, idx) => renderWildCardHtml(w, idx)).join('');
