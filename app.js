@@ -26,8 +26,8 @@ function applySettings() {
 // --- Navigation & Initialization ---
 function showSplash() {
     app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
-        <h1 class="text-6xl font-black text-green-400">PANDA</h1>
-        <h2 class="text-2xl font-bold text-slate-500 tracking-[0.3em] uppercase">Royale</h2>
+        <h1 class="text-5xl font-black text-green-400 text-center px-6">PANDA ROYALE</h1>
+        <h2 class="text-xl font-bold text-slate-500 tracking-[0.3em] uppercase mt-2">Calculator</h2>
         <p class="mt-12 text-slate-600 animate-pulse font-bold text-xs uppercase">Tap to Enter</p>
     </div>`;
 }
@@ -197,7 +197,7 @@ function renderGame() {
             </div>`;
     }
 
-    // Move Gold Box to Review Section if quest is complete
+    // Gold Box Badge (Moved to Review Section if quest is complete)
     if (isExpansion && roundNum >= 2 && sageGlobalStatus) {
         reviewSectionHtml += `
             <div class="prev-round-box bg-yellow-500 text-black border-none mb-3 py-3 animate-fadeIn flex justify-between items-center shadow-md">
@@ -206,7 +206,7 @@ function renderGame() {
             </div>`;
     }
 
-    // --- Progress Section (Middle/Bottom) ---
+    // --- Progress Section (Below Dice) ---
     let progressSectionHtml = '';
     if (isExpansion && roundNum >= 2 && !sageGlobalStatus) {
         progressSectionHtml = `
@@ -248,6 +248,12 @@ function renderGame() {
         </div>
     </div>
     <div id="keypad-container" class="keypad-area p-4 flex flex-col"><div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div><div class="grid grid-cols-4 gap-2 flex-1">${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button><button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button><button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button></div></div>`;
+    
+    // Auto-select Yellow in Round 1
+    if (roundNum === 1 && !activeInputField) {
+        setActiveInput('yellow');
+    }
+
     updateAllDisplays();
 }
 
@@ -288,7 +294,7 @@ function updateAllDisplays() {
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
 }
 
-// --- Smooth Interactions ---
+// --- Interaction Logic ---
 function updateKeypadTheme(bgColor, textColor) {
     const keys = document.querySelectorAll('.kp-btn:not(#add-btn)');
     keys.forEach(k => {
@@ -320,7 +326,7 @@ function adjustWildCount(delta) {
     
     if (delta > 0) {
         rd.wild.push({ value: 0, target: 'purple' });
-        setActiveWildInput(0); // Focus first wild on increment
+        setActiveWildInput(0); 
     } else {
         rd.wild.pop();
         if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null;
@@ -337,7 +343,7 @@ function adjustWildCount(delta) {
 function toggleSparkle() {
     const rd = activeGame.rounds[activeGame.currentRound];
     rd.blueHasSparkle = !rd.blueHasSparkle;
-    setActiveInput('blue'); // Focus blue section on sparkle toggle
+    setActiveInput('blue');
     const btn = document.getElementById('sparkle-btn');
     if (btn) {
         btn.innerHTML = rd.blueHasSparkle ? 'Sparkle Activated ✨' : 'Add Sparkle?';
@@ -419,7 +425,7 @@ function kpEnter() {
 }
 function removeVal(id, idx) { 
     activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); 
-    setActiveInput(id); // Focus category on value removal
+    setActiveInput(id);
     updateAllDisplays(); 
     saveGame(); 
 }
