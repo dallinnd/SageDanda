@@ -23,13 +23,79 @@ function applySettings() {
     localStorage.setItem('panda_settings', JSON.stringify(settings));
 }
 
-// --- Navigation & Initialization ---
+// --- Onboarding & Navigation ---
 function showSplash() {
-    app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="showHome()">
-        <h1 class="text-5xl font-black text-green-400 text-center px-6">PANDA ROYALE</h1>
+    app.innerHTML = `<div class="h-full flex flex-col items-center justify-center bg-[#0f172a]" onclick="checkOnboarding()">
+        <h1 class="text-5xl font-black text-green-400 text-center px-6 uppercase">Panda Royale</h1>
         <h2 class="text-xl font-bold text-slate-500 tracking-[0.3em] uppercase mt-2">Calculator</h2>
         <p class="mt-12 text-slate-600 animate-pulse font-bold text-xs uppercase">Tap to Enter</p>
     </div>`;
+}
+
+function checkOnboarding() {
+    const complete = localStorage.getItem('panda_onboarding_complete');
+    if (!complete) {
+        showOnboarding(1);
+    } else {
+        showHome();
+    }
+}
+
+function showOnboarding(step) {
+    const overlay = document.createElement('div');
+    overlay.id = 'onboarding-overlay';
+    overlay.className = 'fixed inset-0 z-[3000] bg-[#0f172a] flex flex-col p-8 animate-fadeIn text-white';
+
+    let content = '';
+    if (step === 1) {
+        content = `
+            <div class="flex justify-between items-center mb-12">
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Step 1 of 2</span>
+                <button onclick="showOnboarding(2)" class="text-blue-400 font-black uppercase text-sm">Next</button>
+            </div>
+            <div class="flex-1 flex flex-col justify-center text-center">
+                <div class="w-20 h-20 bg-blue-500/20 rounded-3xl flex items-center justify-center self-center mb-8 border border-blue-500/30">
+                    <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </div>
+                <h2 class="text-3xl font-black mb-4">Main Menu</h2>
+                <div class="space-y-6 text-slate-400 font-medium leading-relaxed">
+                    <p><strong class="text-white">Themes:</strong> Tap the top-right icon in History to find Themes, Instructions, and "Clear History".</p>
+                    <p><strong class="text-white">Game Modes:</strong> Choose <span class="text-green-400">Normal</span> or <span class="text-purple-400">Expansion</span> when starting a new game.</p>
+                    <p><strong class="text-white">Management:</strong> Tap a saved game to <span class="text-blue-400">Resume</span> playing or <span class="text-red-400">Delete</span> it.</p>
+                </div>
+            </div>
+            <button onclick="finishOnboarding()" class="mt-12 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest">Skip Instructions</button>`;
+    } else {
+        content = `
+            <div class="flex justify-between items-center mb-12">
+                <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Step 2 of 2</span>
+                <button onclick="finishOnboarding()" class="text-green-400 font-black uppercase text-sm">Done</button>
+            </div>
+            <div class="flex-1 flex flex-col justify-center text-center">
+                <div class="w-20 h-20 bg-purple-500/20 rounded-3xl flex items-center justify-center self-center mb-8 border border-purple-500/30">
+                    <svg class="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                </div>
+                <h2 class="text-3xl font-black mb-4">Gameplay Tips</h2>
+                <div class="space-y-6 text-slate-400 font-medium leading-relaxed text-sm">
+                    <p><strong class="text-white">Input:</strong> Tap any color die section to select it for the numpad. The calculator auto-selects for you as you play!</p>
+                    <p><strong class="text-white">Navigation:</strong> Use the <strong class="text-white">Arrows</strong> at the top to move between rounds 1 through 10.</p>
+                    <p><strong class="text-white">Expansion Features:</strong> Try the <span class="text-yellow-400">Sage Quest</span> (fill the meter by using different colors) and <span class="text-red-400">Wild Dice</span> for big point boosts!</p>
+                </div>
+            </div>
+            <button onclick="finishOnboarding()" class="mt-12 py-4 opacity-40 font-black uppercase text-[10px] tracking-widest">Start Playing</button>`;
+    }
+
+    overlay.innerHTML = content;
+    const existing = document.getElementById('onboarding-overlay');
+    if (existing) existing.remove();
+    document.body.appendChild(overlay);
+}
+
+function finishOnboarding() {
+    localStorage.setItem('panda_onboarding_complete', 'true');
+    const overlay = document.getElementById('onboarding-overlay');
+    if (overlay) overlay.remove();
+    showHome();
 }
 
 function showHome() {
@@ -62,13 +128,12 @@ function showHome() {
     </div>`;
 }
 
-// --- Popups (Game Management) ---
+// --- Popups & Creation ---
 function openGameActions(index) {
     const overlay = document.createElement('div');
     overlay.id = 'action-modal';
     overlay.className = 'modal-overlay animate-fadeIn';
     overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
-    
     overlay.innerHTML = `<div class="action-popup">
         <h2 class="text-2xl font-black mb-2">${games[index].mode.toUpperCase()} MODE</h2>
         <p class="text-[10px] font-black uppercase opacity-40 tracking-[0.2em] mb-8">Game #${games.length - index}</p>
@@ -103,7 +168,6 @@ function confirmDelete(index) {
     }
 }
 
-// --- Creation & Mode Selection ---
 function openNewGameModal() {
     const overlay = document.createElement('div');
     overlay.id = 'mode-modal';
@@ -197,7 +261,6 @@ function renderGame() {
             </div>`;
     }
 
-    // Gold Box Badge (Moved to Review Section if quest is complete)
     if (isExpansion && roundNum >= 2 && sageGlobalStatus) {
         reviewSectionHtml += `
             <div class="prev-round-box bg-yellow-500 text-black border-none mb-3 py-3 animate-fadeIn flex justify-between items-center shadow-md">
@@ -249,11 +312,7 @@ function renderGame() {
     </div>
     <div id="keypad-container" class="keypad-area p-4 flex flex-col"><div id="active-input-display" class="text-center text-lg font-black mb-3 h-6 tracking-widest uppercase opacity-60">-</div><div class="grid grid-cols-4 gap-2 flex-1">${[1,2,3].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button id="add-btn" onclick="kpEnter()" class="kp-btn bg-green-600 text-white row-span-4 h-full">ADD</button>${[4,5,6].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}${[7,8,9].map(n => `<button onclick="kpInput('${n}')" class="kp-btn bg-black/5 text-inherit text-3xl">${n}</button>`).join('')}<button onclick="kpClear()" class="kp-btn bg-black/5 text-lg font-bold text-slate-400">CLR</button><button onclick="kpInput('0')" class="kp-btn bg-black/5 text-inherit text-3xl">0</button><button onclick="kpToggleNeg()" class="kp-btn bg-black/5 text-inherit text-2xl">+/-</button></div></div>`;
     
-    // Auto-select Yellow in Round 1
-    if (roundNum === 1 && !activeInputField) {
-        setActiveInput('yellow');
-    }
-
+    if (roundNum === 1 && !activeInputField) { setActiveInput('yellow'); }
     updateAllDisplays();
 }
 
@@ -294,7 +353,7 @@ function updateAllDisplays() {
     document.getElementById('grand-total-box').textContent = calculateGrandTotal(activeGame);
 }
 
-// --- Interaction Logic ---
+// --- Interaction Helpers ---
 function updateKeypadTheme(bgColor, textColor) {
     const keys = document.querySelectorAll('.kp-btn:not(#add-btn)');
     keys.forEach(k => {
@@ -307,36 +366,25 @@ function updateKeypadTheme(bgColor, textColor) {
 function changeRound(s) { 
     const n = activeGame.currentRound + s; 
     if (n < 0 || n >= 10) return;
-
     if (activeGame.mode === 'expansion' && s === 1) {
         const sageNow = calculateSageProgress(activeGame.rounds[activeGame.currentRound]).count >= 6;
         const completedPreviously = activeGame.rounds.slice(0, activeGame.currentRound).some(r => calculateSageProgress(r).count >= 6);
         if (sageNow && !completedPreviously) showSagePopup();
     }
-    
     activeGame.currentRound = n; 
-    saveGame(); 
-    renderGame(); 
+    saveGame(); renderGame(); 
 }
 
 function adjustWildCount(delta) {
     const rd = activeGame.rounds[activeGame.currentRound];
     if (!rd.wild) rd.wild = [];
     if (rd.wild.length + delta < 0 || rd.wild.length + delta > 9) return;
-    
-    if (delta > 0) {
-        rd.wild.push({ value: 0, target: 'purple' });
-        setActiveWildInput(0); 
-    } else {
-        rd.wild.pop();
-        if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null;
-    }
-    
+    if (delta > 0) { rd.wild.push({ value: 0, target: 'purple' }); setActiveWildInput(0); }
+    else { rd.wild.pop(); if (activeInputField && activeInputField.startsWith('wild-')) activeInputField = null; }
     saveGame();
     const container = document.getElementById('wild-list-container');
-    const countNum = document.getElementById('wild-count-num');
-    if (countNum) countNum.textContent = rd.wild.length;
     if (container) container.innerHTML = rd.wild.map((w, idx) => renderWildCardHtml(w, idx)).join('');
+    document.getElementById('wild-count-num').textContent = rd.wild.length;
     updateAllDisplays();
 }
 
@@ -369,8 +417,7 @@ function setActiveWildInput(idx) {
     activeInputField = `wild-${idx}`;
     document.querySelectorAll('.wild-card').forEach((c, i) => c.classList.toggle('active-input', i === idx));
     document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
-    updateKeypadTheme("#ffffff", "#000000");
-    updateKpDisplay();
+    updateKeypadTheme("#ffffff", "#000000"); updateKpDisplay();
 }
 
 function setActiveInput(id) {
@@ -381,8 +428,7 @@ function setActiveInput(id) {
     document.querySelectorAll('.dice-row').forEach(r => { r.style.backgroundColor = ""; r.style.color = ""; });
     const row = document.getElementById(`row-${id}`);
     if (row) { row.style.backgroundColor = config.color; row.style.color = config.text; }
-    updateKeypadTheme(config.color, config.text);
-    updateKpDisplay();
+    updateKeypadTheme(config.color, config.text); updateKpDisplay();
 }
 
 function renderDiceRow(dice, roundData) {
@@ -396,7 +442,7 @@ function renderWildCardHtml(w, idx) {
     return `<div onclick="setActiveWildInput(${idx})" id="wild-card-${idx}" class="wild-card ${activeInputField === 'wild-'+idx ? 'active-input' : ''}" style="border-left: 8px solid ${color}"><div class="flex justify-between items-start"><span class="text-[10px] font-black uppercase opacity-40">Wild #${idx+1}</span><span class="text-3xl font-black wild-val-display">${w.value || 0}</span></div><div class="color-picker-wheel">${diceConfig.filter(d => d.id !== 'yellow').map(d => `<div onclick="event.stopPropagation(); setWildTarget(${idx}, '${d.id}')" class="wheel-item ${w.target === d.id ? 'selected' : ''}" style="background-color: ${d.color}"></div>`).join('')}</div></div>`;
 }
 
-// --- Utils ---
+// --- Utils & Settings ---
 function calculateRoundTotal(round) {
     let total = 0;
     const wildBonuses = {};
@@ -423,12 +469,7 @@ function kpEnter() {
     else rd[activeInputField].push(parseFloat(keypadValue));
     kpClear(); updateAllDisplays(); saveGame();
 }
-function removeVal(id, idx) { 
-    activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); 
-    setActiveInput(id);
-    updateAllDisplays(); 
-    saveGame(); 
-}
+function removeVal(id, idx) { activeGame.rounds[activeGame.currentRound][id].splice(idx, 1); setActiveInput(id); updateAllDisplays(); saveGame(); }
 function saveGame() { localStorage.setItem('panda_games', JSON.stringify(games)); }
 function setTheme(t) { settings.theme = t; applySettings(); toggleMenu(); showHome(); }
 function toggleMenu() {
@@ -438,7 +479,18 @@ function toggleMenu() {
     menu.id = 'menu-overlay';
     menu.className = 'modal-overlay justify-end animate-fadeIn';
     menu.onclick = (e) => { if(e.target === menu) menu.remove(); };
-    menu.innerHTML = `<div class="menu-panel flex flex-col"><h2 class="text-xl font-black uppercase mb-10">Settings</h2><button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 mb-3 ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">Dark Navy</button><button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">Off-White</button><button onclick="clearHistory()" class="mt-auto text-red-600 font-bold p-4 opacity-50 italic">Clear All History</button></div>`;
+    menu.innerHTML = `
+        <div class="menu-panel flex flex-col">
+            <h2 class="text-xl font-black uppercase mb-8">Settings</h2>
+            <div class="space-y-3">
+                <button onclick="setTheme('dark')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'dark' ? 'border-green-600 bg-green-600/10' : 'border-black/5'}">Dark Navy</button>
+                <button onclick="setTheme('light')" class="w-full text-left p-4 rounded-2xl border-2 ${settings.theme === 'light' ? 'border-blue-600 bg-blue-600/10' : 'border-black/5'}">Off-White</button>
+            </div>
+            <div class="mt-8 pt-8 border-t border-black/5 space-y-2">
+                <button onclick="showOnboarding(1)" class="w-full text-left p-4 bg-blue-500/10 text-blue-500 rounded-2xl font-bold">Replay Instructions</button>
+                <button onclick="clearHistory()" class="w-full text-left p-4 text-red-600 font-bold opacity-50 italic">Clear All History</button>
+            </div>
+        </div>`;
     document.body.appendChild(menu);
 }
 function clearHistory() { if (confirm("Delete ALL history?")) { games = []; saveGame(); showHome(); } }
